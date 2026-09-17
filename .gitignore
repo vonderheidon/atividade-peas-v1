@@ -1,0 +1,65 @@
+# ==========================================
+# Python
+# ==========================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+
+# Ambientes virtuais
+venv/
+env/
+.venv/
+
+# Testes e tipagem
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# ==========================================
+# Node / Frontend / Temporários
+# ==========================================
+node_modules/
+scratch/node_modules/
+scratch/
+npm-debug.log*
+yarn-debug.log*
+*.log
+*.tmp
+
+# ==========================================
+# Variáveis de Ambiente & Segredos
+# ==========================================
+.env
+.env.local
+.env.*.local
+
+# ==========================================
+# Sistema Operacional & IDEs
+# ==========================================
+Thumbs.db
+[Dd]esktop.ini
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*~
+
+# =========================================
+# Arquivos de IAs
+# =========================================
+.claude/
+AGENTS.md
+CLAUDE.md
+
+# =========================================
+# Outros
+# =========================================
+PEAS-agente-quarto-atualizado.md
+PEAS-apresentacao-direta.md

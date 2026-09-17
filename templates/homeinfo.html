@@ -1,0 +1,848 @@
+<!doctype html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#eaf0f7">
+  <title>PEAS / Quarto 3D — Observatório do agente</title>
+  <link rel="stylesheet" href="/static/simulador/styles.css">
+  <link rel="stylesheet" href="/static/simulador/dashboard.css?v=decision-cycle-12">
+</head>
+
+<body>
+  <a class="skip-link" href="#prototypeRoot">Pular para o simulador</a>
+
+  <main id="prototypeRoot" class="simulator-main" data-simulator-root data-ui-state="pausado">
+    <h1 class="sr-only">PEAS: um agente no quarto inteligente</h1>
+
+    <div class="dashboard-controls-column">
+      <section id="environment-region" class="panel environment-panel" aria-labelledby="environment-title">
+        <header class="panel-header">
+          <div class="panel-title-group">
+            <h2 id="environment-title" class="panel-title">Condições do quarto</h2>
+            <button id="open-peas-help" class="peas-help-trigger" type="button" data-dialog="peas-ajuda"
+              aria-controls="peas-help-modal" aria-haspopup="dialog" aria-label="Abrir ajuda sobre o modelo PEAS"
+              title="Sobre o modelo PEAS">?</button>
+          </div>
+          <span class="micro-label">sete sinais</span>
+        </header>
+
+        <form id="environment-form" class="environment-body" aria-describedby="environment-help">
+          <div class="environment-intro">
+            <p id="environment-help" class="section-help">Ajuste as condições que serão enviadas ao próximo estado do
+              ambiente.</p>
+            <p id="environment-status" class="resource-note" role="status" aria-live="polite">Aguardando estado inicial.
+            </p>
+          </div>
+
+          <div class="environment-fields">
+            <div class="field-control">
+              <label class="control-label" for="hora">
+                <span>Hora simulada</span>
+                <output id="hora_valor" for="hora">06:00</output>
+              </label>
+              <input id="hora" name="hora" data-environment="hora" type="range" min="0" max="23" value="6">
+              <span class="input-subnote">Janela temporal do próximo ciclo.</span>
+            </div>
+
+            <div class="field-control field-control-wide">
+              <label class="control-label" for="temperatura_externa">
+                <span>Temperatura externa</span>
+                <output id="temperatura_externa_valor" for="temperatura_externa">22,0 °C</output>
+              </label>
+              <input id="temperatura_externa" name="temperatura_externa" data-environment="temperatura_externa"
+                type="range" min="0" max="45" step="0.5" value="22">
+              <span class="input-subnote">Parâmetro físico do ambiente.</span>
+            </div>
+
+            <div class="field-control">
+              <label class="control-label" for="umidade">
+                <span>Umidade relativa</span>
+                <output id="umidade_valor" for="umidade">50%</output>
+              </label>
+              <input id="umidade" name="umidade" data-environment="umidade" type="range" min="0" max="100" value="50">
+              <span class="input-subnote">Leitura percentual do quarto.</span>
+            </div>
+          </div>
+
+          <fieldset class="preset-fieldset">
+            <legend class="control-label-header">Presets de cenário</legend>
+            <div class="preset-controls" aria-label="Presets de cenário">
+              <button class="preset-button" type="button" data-preset="calor">
+                <span class="preset-code" aria-hidden="true">A</span>
+                <span><strong>Calor</strong><small>cenário térmico</small></span>
+              </button>
+              <button class="preset-button" type="button" data-preset="frio">
+                <span class="preset-code" aria-hidden="true">B</span>
+                <span><strong>Frio</strong><small>cenário térmico</small></span>
+              </button>
+              <button class="preset-button" type="button" data-preset="conforto">
+                <span class="preset-code" aria-hidden="true">C</span>
+                <span><strong>Conforto</strong><small>cenário base</small></span>
+              </button>
+            </div>
+            <button id="reset-simulador" class="preset-button" type="button" data-reset="true">
+              <span class="preset-code" aria-hidden="true">R</span>
+              <span><strong>Resetar</strong><small>conforto e pausa</small></span>
+            </button>
+          </fieldset>
+
+        </form>
+      </section>
+
+      <article id="decision-region" class="panel decision-card" aria-labelledby="decision-title">
+        <header class="decision-header">
+          <div>
+            <span class="decision-state"><span class="state-mark" aria-hidden="true"></span><span
+                id="decisao_estado">pausado</span></span>
+          </div>
+        </header>
+
+        <div class="decision-body">
+          <p id="decision-action-label" class="decision-label">resultado do último ciclo</p>
+          <h2 id="decision-title"><span id="decisao_acao">Nenhum ciclo executado</span></h2>
+          <p id="decision-result-status" class="micro-label">Aguardando execução</p>
+          <ul id="decisao_acoes" class="decision-actions" aria-label="Ações compatíveis no ciclo"></ul>
+          <p id="decisao_motivo" class="decision-copy">O motivo curto da escolha aparecerá aqui quando o agente receber
+            uma leitura confirmada.</p>
+
+          <div id="decision-idle-guide" class="decision-idle-guide" aria-label="Instruções de início">
+            <div class="idle-steps">
+              <div class="idle-step">
+                <span class="idle-step-num">1</span>
+                <div>
+                  <strong>Ajuste o ambiente</strong>
+                  <p>Selecione acima um preset de cenário.</p>
+                </div>
+              </div>
+              <div class="idle-step">
+                <span class="idle-step-num">2</span>
+                <div>
+                  <strong>Escolha o modo</strong>
+                  <p>Selecione entre Reativo (regras) ou Cognitivo (aprendizagem).</p>
+                </div>
+              </div>
+              <div class="idle-step">
+                <span class="idle-step-num">3</span>
+                <div>
+                  <strong>Avance o ciclo</strong>
+                  <p>Observe a deliberação do agente e sua atuação física no quarto 3D.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <section id="decision-preview" class="decision-preview" aria-label="Próximo ciclo" aria-live="polite" hidden>
+            <p id="decision-preview-label" class="kicker">Prévia · não executada</p>
+            <p id="decision-preview-action" class="preview-action"></p>
+            <p id="decision-preview-copy" class="decision-copy"></p>
+          </section>
+          <details id="decision-details" class="decision-details" hidden>
+            <summary>Ver detalhes da decisão</summary>
+            <dl class="decision-facts" aria-label="Estado essencial da decisão">
+              <div>
+                <dt>modo</dt>
+                <dd id="decisao_modo">—</dd>
+              </div>
+              <div>
+                <dt>objetivo</dt>
+                <dd id="decisao_objetivo">—</dd>
+              </div>
+              <div>
+                <dt>plano</dt>
+                <dd id="decisao_plano">—</dd>
+              </div>
+            </dl>
+
+            <section id="identity-region" class="decision-identity" aria-labelledby="identity-title">
+              <p class="kicker" id="identity-title">identidade contextual</p>
+              <dl class="decision-facts identity-facts">
+                <div>
+                  <dt>modo cognitivo</dt>
+                  <dd id="identidade_modo">—</dd>
+                </div>
+                <div>
+                  <dt>faixa horária</dt>
+                  <dd id="identidade_faixa_horario">—</dd>
+                </div>
+                <div>
+                  <dt>dormir</dt>
+                  <dd id="identidade_dormir">—</dd>
+                </div>
+                <div>
+                  <dt>faixa térmica</dt>
+                  <dd id="identidade_faixa_temperatura">—</dd>
+                </div>
+                <div>
+                  <dt>luminosidade</dt>
+                  <dd id="identidade_luminosidade">—</dd>
+                </div>
+                <div>
+                  <dt>presença interna</dt>
+                  <dd id="identidade_presenca_interna">—</dd>
+                </div>
+              </dl>
+            </section>
+
+            <p id="decision-influence" class="resource-note">Aguardando uma decisão cognitiva confirmada.</p>
+
+            <button id="open-reasoning" class="reasoning-button" type="button" data-dialog="raciocinio"
+              aria-controls="reasoning-modal">
+              <span>Ver raciocínio completo</span>
+              <span class="button-arrow" aria-hidden="true">↗</span>
+            </button>
+          </details>
+        </div>
+
+        <section id="feedback-region" class="feedback-zone" aria-labelledby="feedback-title">
+          <div class="feedback-heading">
+            <div>
+              <h3 id="feedback-title">Esta decisão ajudou?</h3>
+            </div>
+            <span class="micro-label">feedback</span>
+          </div>
+          <p id="feedback-copy" class="feedback-copy">Aguardando uma decisão cognitiva confirmada.</p>
+          <div id="feedback-actions" class="feedback-actions" hidden>
+            <button id="feedback_aceitar" class="feedback-button feedback-button-accept" type="button"
+              data-feedback="aceitar">Aceitar</button>
+            <button id="feedback_rejeitar" class="feedback-button" type="button"
+              data-feedback="rejeitar">Rejeitar</button>
+          </div>
+          <section id="learning-result-region" class="learning-result" aria-labelledby="learning-result-title" hidden>
+            <p class="kicker" id="learning-result-title">resultado imediato</p>
+            <dl class="decision-facts">
+              <div>
+                <dt>feedback</dt>
+                <dd id="learning-result-type">—</dd>
+              </div>
+              <div>
+                <dt>ação avaliada</dt>
+                <dd id="learning-result-action">—</dd>
+              </div>
+              <div>
+                <dt>identidade</dt>
+                <dd id="learning-result-identity">—</dd>
+              </div>
+              <div>
+                <dt>saldo anterior</dt>
+                <dd id="learning-result-previous">—</dd>
+              </div>
+              <div>
+                <dt>variação</dt>
+                <dd id="learning-result-delta">—</dd>
+              </div>
+              <div>
+                <dt>saldo atual</dt>
+                <dd id="learning-result-current">—</dd>
+              </div>
+              <div>
+                <dt>reaplicação</dt>
+                <dd id="learning-result-condition">—</dd>
+              </div>
+            </dl>
+          </section>
+        </section>
+      </article>
+    </div>
+
+    <div class="scene-stack scene-column">
+      <div class="scene-frame">
+        <section id="scene-region" class="scene-stage" data-three-room data-renderer-state="loading"
+          aria-label="Cena 3D do quarto">
+          <canvas id="room-canvas" class="three-room-canvas" aria-hidden="true"></canvas>
+          <div id="hoverTooltip" class="hover-tooltip" aria-hidden="true"></div>
+
+          <aside id="room-scene-fallback" class="room-scene-fallback" data-renderer-state="loading" role="status"
+            aria-live="polite" aria-label="Carregando cena 3D">
+            <img class="room-scene-fallback-image" src="/static/simulador/assets/room-neutral.png" alt=""
+              aria-hidden="true">
+            <div class="room-scene-loading-scrim" aria-hidden="true"></div>
+            <div class="room-scene-loading-content">
+              <div class="room-scene-loading-eyebrow">
+                <span class="room-scene-loading-spinner" aria-hidden="true"></span>
+                <span data-room-scene-eyebrow>CENA 3D</span>
+              </div>
+              <strong data-room-scene-title>Preparando o quarto</strong>
+              <span data-room-scene-detail>Carregando modelo e materiais...</span>
+              <div class="room-scene-loading-progress" data-room-scene-progressbar role="progressbar"
+                aria-label="Carregamento da cena 3D" aria-valuetext="Carregando modelo">
+                <span data-room-scene-progress></span>
+              </div>
+            </div>
+            <p class="sr-only" data-room-scene-message>Carregando a cena 3D. Os controles permanecem utilizáveis.</p>
+          </aside>
+
+          <nav id="device-region" class="device-controls" aria-label="Controles operáveis dos dispositivos">
+            <!-- 01: Luz (Lâmpada) -->
+            <button id="device_lampada" class="device-control" type="button" data-device="lampada"
+              data-confirmed-value="0" aria-label="Luz: Desligada" title="Luz: Desligada">
+              <span class="device-icon-wrapper" aria-hidden="true">
+                <svg class="device-svg device-svg-light" viewBox="0 0 24 24" width="22" height="22" fill="none"
+                  stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <g class="icon-rays">
+                    <line x1="12" y1="1.5" x2="12" y2="3.2" />
+                    <line x1="4.8" y1="4.2" x2="6.2" y2="5.6" />
+                    <line x1="1.5" y1="9.5" x2="3.2" y2="9.5" />
+                    <line x1="20.8" y1="9.5" x2="22.5" y2="9.5" />
+                    <line x1="17.8" y1="5.6" x2="19.2" y2="4.2" />
+                  </g>
+                  <path class="icon-bulb-glass"
+                    d="M8.5 13.5C7.2 12.2 6.5 11 6.5 9.5a5.5 5.5 0 1 1 11 0c0 1.5-.7 2.7-2 4l-.5 2.5h-6l-.5-2.5z" />
+                  <line class="icon-bulb-thread" x1="9.5" y1="17.5" x2="14.5" y2="17.5" stroke-width="1.5" />
+                  <path class="icon-bulb-base" d="M10.5 19.5h3" stroke-width="1.8" />
+                  <circle class="icon-filament" cx="12" cy="9.5" r="1.6" />
+                </svg>
+              </span>
+              <span class="device-tooltip" role="tooltip">Luz • Desligada</span>
+            </button>
+
+            <!-- 02: Umidificador -->
+            <button id="device_umidificador" class="device-control" type="button" data-device="umidificador"
+              data-confirmed-value="0" aria-label="Umidificador: Desligado" title="Umidificador: Desligado">
+              <span class="device-icon-wrapper" aria-hidden="true">
+                <svg class="device-svg device-svg-mist" viewBox="0 0 24 24" width="22" height="22" fill="none"
+                  stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <g class="icon-mist-streams">
+                    <path class="icon-steam steam-1" d="M9.5 5c-.5-.9 .5-1.9 0-2.8" />
+                    <path class="icon-steam steam-2" d="M12 5.5c-.5-1.2 .5-2.2 0-3.3" />
+                    <path class="icon-steam steam-3" d="M14.5 5c-.5-.9 .5-1.9 0-2.8" />
+                  </g>
+                  <path class="icon-humidifier-body"
+                    d="M10 7.5h4l1.2 3.8a4.8 4.8 0 0 1-3.2 5.7 4.8 4.8 0 0 1-3.2-5.7L10 7.5z" />
+                  <path class="icon-humidifier-base" d="M7.5 19h9a.8.8 0 0 0 .8-.8v-.7H6.7v.7a.8.8 0 0 0 .8.8z" />
+                  <circle class="icon-water-drop" cx="12" cy="13.5" r="1.4" />
+                </svg>
+              </span>
+              <span class="device-tooltip" role="tooltip">Umidificador • Desligado</span>
+            </button>
+
+            <!-- 03: Ar-condicionado -->
+            <button id="device_ar" class="device-control" type="button" data-device="ar" data-confirmed-value="0"
+              aria-label="Ar-condicionado: Desligado" title="Ar-condicionado: Desligado">
+              <span class="device-icon-wrapper" aria-hidden="true">
+                <svg class="device-svg device-svg-ac" viewBox="0 0 24 24" width="22" height="22" fill="none"
+                  stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <rect class="icon-ac-box" x="3" y="7" width="18" height="10" rx="2" />
+                  <line class="icon-ac-vent" x1="6" y1="11.5" x2="18" y2="11.5" stroke-width="1.3" />
+                  <line class="icon-ac-louver" x1="6" y1="14" x2="18" y2="14" stroke-width="1.3" />
+                  <circle class="icon-ac-dot" cx="18" cy="9.5" r="1" />
+                  <g class="icon-airflow">
+                    <path class="icon-breeze breeze-1" d="M6.5 18c.8 1.2 .8 2.5 0 3.5" />
+                    <path class="icon-breeze breeze-2" d="M12 18c.8 1.2 .8 2.5 0 3.5" />
+                    <path class="icon-breeze breeze-3" d="M17.5 18c.8 1.2 .8 2.5 0 3.5" />
+                  </g>
+                </svg>
+              </span>
+              <span class="device-tooltip" role="tooltip">Ar-condicionado • Desligado</span>
+            </button>
+
+            <!-- 04: Ventilador -->
+            <button id="device_ventilador" class="device-control" type="button" data-device="ventilador"
+              data-confirmed-value="0" aria-label="Ventilador: Desligado" title="Ventilador: Desligado">
+              <span class="device-icon-wrapper" aria-hidden="true">
+                <svg class="device-svg device-svg-fan" viewBox="0 0 24 24" width="22" height="22" fill="none"
+                  stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <circle class="icon-fan-guard" cx="12" cy="12" r="9.5" stroke-width="1.3" />
+                  <g class="icon-fan-blades">
+                    <path d="M12 12c1.6-2.5 4.2-3 5.2-1.9s.4 3.7-2.1 4.7c-1.6.6-3.1-.3-3.1-2.8z" fill="currentColor"
+                      fill-opacity="0.32" />
+                    <path d="M12 12c-2.5-1.6-3-4.2-1.9-5.2s3.7-.4 4.7 2.1c.6 1.6-.3 3.1-2.8 3.1z" fill="currentColor"
+                      fill-opacity="0.32" />
+                    <path d="M12 12c-.5 3-2.6 4.5-3.9 3.8s-.2-3.8 1.9-5c1.2-.8 2.5-.3 2 1.2z" fill="currentColor"
+                      fill-opacity="0.32" />
+                    <circle cx="12" cy="12" r="2.2" fill="currentColor" />
+                  </g>
+                </svg>
+              </span>
+              <span class="device-tooltip" role="tooltip">Ventilador • Desligado</span>
+            </button>
+
+            <!-- 05: Janela -->
+            <button id="device_janela" class="device-control" type="button" data-device="janela"
+              data-confirmed-value="0" aria-label="Janela: Fechada" title="Janela: Fechada">
+              <span class="device-icon-wrapper" aria-hidden="true">
+                <svg class="device-svg device-svg-window" viewBox="0 0 24 24" width="22" height="22" fill="none"
+                  stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <rect class="icon-win-outer" x="3.5" y="4.5" width="17" height="14.5" rx="1.5" />
+                  <line class="icon-win-sill" x1="2" y1="19.5" x2="22" y2="19.5" stroke-width="2" />
+                  <g class="icon-win-pane-left">
+                    <rect x="5.2" y="6" width="5.6" height="11" rx="0.5" stroke-width="1.3" />
+                    <line x1="5.2" y1="11.5" x2="10.8" y2="11.5" stroke-width="1" />
+                  </g>
+                  <g class="icon-win-pane-right">
+                    <rect x="13.2" y="6" width="5.6" height="11" rx="0.5" stroke-width="1.3" />
+                    <line x1="13.2" y1="11.5" x2="18.8" y2="11.5" stroke-width="1" />
+                  </g>
+                  <path class="icon-win-breeze" d="M9.5 9c2 0 3 2.5 4.5 2.5" stroke-width="1.5" />
+                </svg>
+              </span>
+              <span class="device-tooltip" role="tooltip">Janela • Fechada</span>
+            </button>
+          </nav>
+
+          <!-- Indicador de Temperatura Interna -->
+          <div id="room-temperature-badge" class="scene-temperature-badge" aria-label="Temperatura interna">
+            <span class="scene-temp-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z" />
+              </svg>
+            </span>
+            <span class="scene-temp-label">Temp. Interna</span>
+            <output id="temperatura_interna_valor" class="scene-temp-value">24,0 °C</output>
+          </div>
+        </section>
+        <nav id="cycle-region" class="cycle-controls" aria-label="Controles de execução do ciclo">
+          <button id="cycle_pause" class="cycle-button is-active" type="button" data-cycle="pause" aria-pressed="true"
+            disabled aria-disabled="true" title="A execução automática não está rodando.">
+            <span class="cycle-symbol" aria-hidden="true">||</span>
+            <span>Pausar</span>
+          </button>
+          <button id="cycle_next" class="cycle-button cycle-button-primary" type="button" data-cycle="next" disabled
+            aria-disabled="true" title="Selecione um preset para habilitar este controle">
+            <span class="cycle-symbol" aria-hidden="true">&gt;</span>
+            <span>Próximo ciclo</span>
+          </button>
+          <button id="cycle_auto" class="cycle-button" type="button" data-cycle="auto" aria-pressed="false" disabled
+            aria-disabled="true" title="Selecione um preset para habilitar este controle">
+            <span class="cycle-symbol" aria-hidden="true">&gt;&gt;</span>
+            <span>Executar automaticamente</span>
+          </button>
+          <div class="cycle-mode-control">
+            <span class="cycle-mode-label">modo do ciclo</span>
+            <select id="cycle_mode" name="modo" data-cycle-mode aria-label="Modo do ciclo">
+              <option value="reativo" selected>Reativo</option>
+              <option value="cognitivo">Cognitivo</option>
+            </select>
+            <button id="open-cycle-mode-help" class="peas-help-trigger cycle-mode-help-trigger" type="button"
+              data-dialog="modo-ciclo-ajuda" aria-controls="cycle-mode-help-modal" aria-haspopup="dialog"
+              aria-label="Abrir ajuda sobre o modo do ciclo" title="Sobre os modos do ciclo">?</button>
+          </div>
+          <span class="cycle-readout"><span class="state-mark" aria-hidden="true"></span><span
+              id="cycle_status">simulação pausada</span></span>
+        </nav>
+      </div>
+
+      <section id="context-region" class="panel context-panel" aria-labelledby="context-title">
+        <header class="panel-header">
+          <div>
+            <h2 id="context-title" class="panel-title">Contexto do quarto</h2>
+          </div>
+          <span class="micro-label">quatro sinais</span>
+        </header>
+
+        <div class="context-panel-body">
+          <fieldset class="context-fieldset">
+            <legend class="control-label-header">Contexto e segurança</legend>
+            <div class="context-controls">
+              <label class="toggle-line toggle-line-alert" for="chuva">
+                <span><strong>Chuva</strong><small>trava ambiental</small></span>
+                <input id="chuva" name="chuva" data-environment="chuva" type="checkbox" form="environment-form">
+              </label>
+              <label class="toggle-line" for="presenca_interna">
+                <span><strong>Presença interna</strong><small>ocupação do quarto</small></span>
+                <input id="presenca_interna" name="presenca_interna" data-environment="presenca_interna" type="checkbox"
+                  checked form="environment-form">
+              </label>
+              <label class="toggle-line toggle-line-alert" for="presenca_externa">
+                <span><strong>Presença externa</strong><small>trava de janela</small></span>
+                <input id="presenca_externa" name="presenca_externa" data-environment="presenca_externa" type="checkbox"
+                  form="environment-form">
+              </label>
+              <label class="toggle-line" for="dormir">
+                <span><strong>Modo dormir</strong><small>contexto de repouso</small></span>
+                <input id="dormir" name="dormir" data-environment="dormir" type="checkbox" form="environment-form">
+              </label>
+            </div>
+          </fieldset>
+        </div>
+    </div>
+
+    <p id="simulator-alert" class="toast toast-error" role="alert" aria-live="assertive" aria-atomic="true"
+      aria-hidden="true"></p>
+
+    <dialog id="reasoning-modal" class="reasoning-modal story-panel" aria-labelledby="reasoning-title"
+      aria-describedby="reasoning-description">
+      <div class="modal-shell">
+        <header class="modal-header">
+          <div>
+            <p class="kicker">Rastro da decisão / detalhe</p>
+            <h2 id="reasoning-title">Como a escolha foi construída</h2>
+            <p id="reasoning-description" class="modal-description">Evidências, alternativas e métricas recebidas do
+              agente para este ciclo.</p>
+          </div>
+          <button id="close-reasoning" class="modal-close" type="button" data-dialog="fechar"
+            aria-label="Fechar raciocínio">
+            <span aria-hidden="true">×</span>
+          </button>
+        </header>
+
+        <div class="modal-body">
+          <section id="evidence-region" class="reasoning-section" aria-labelledby="evidence-title">
+            <header class="section-heading">
+              <span class="section-number" aria-hidden="true">01</span>
+              <div>
+                <p class="kicker">evidências</p>
+                <h3 id="evidence-title">O que foi percebido</h3>
+              </div>
+            </header>
+            <ol id="evidence-list" class="evidence-list">
+              <li><span class="evidence-index">A</span>
+                <div><strong>Ambiente</strong>
+                  <p id="evidence_ambiente" data-evidence="ambiente">Aguardando leitura do ambiente.</p>
+                </div>
+              </li>
+              <li><span class="evidence-index">B</span>
+                <div><strong>Contexto</strong>
+                  <p id="evidence_contexto" data-evidence="contexto">Aguardando contexto do ciclo.</p>
+                </div>
+              </li>
+              <li><span class="evidence-index">C</span>
+                <div><strong>Correções permitidas</strong>
+                  <p id="evidence_restricoes" data-evidence="restricoes">Aguardando correções permitidas confirmadas.
+                  </p>
+                </div>
+              </li>
+            </ol>
+          </section>
+
+          <section id="alternatives-region" class="reasoning-section" aria-labelledby="alternatives-title">
+            <header class="section-heading">
+              <span class="section-number" aria-hidden="true">02</span>
+              <div>
+                <p class="kicker">comparação</p>
+                <div class="section-heading-title-group">
+                  <h3 id="alternatives-title">Alternativas consideradas</h3>
+                  <button id="open-utility-formula-help" class="peas-help-trigger formula-help-trigger" type="button" hidden
+                    data-dialog="formula-utilidade-ajuda" aria-controls="utility-formula-modal" aria-haspopup="dialog"
+                    aria-label="Abrir explicação da fórmula da utilidade" title="Fórmula da utilidade">?</button>
+                </div>
+              </div>
+            </header>
+            <div class="table-frame">
+              <table class="alternatives-table">
+                <caption class="sr-only">Alternativas, pontuação e influência da decisão</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Ação</th>
+                    <th scope="col">Elegibilidade</th>
+                    <th scope="col">Base</th>
+                    <th scope="col">Preferência</th>
+                    <th scope="col">Total</th>
+                    <th scope="col">Influência</th>
+                    <th scope="col">Utilidade</th>
+                  </tr>
+                </thead>
+                <tbody id="alternatives-list">
+                  <tr>
+                    <td colspan="7" class="table-empty">As alternativas aparecerão após o próximo ciclo.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section id="metrics-region" class="reasoning-section metrics-region" aria-labelledby="metrics-title">
+            <header class="section-heading">
+              <span class="section-number" aria-hidden="true">03</span>
+              <div>
+                <p class="kicker">métricas</p>
+                <h3 id="metrics-title">O que pesou na escolha</h3>
+              </div>
+            </header>
+            <dl id="metrics-list" class="metrics-grid">
+              <div>
+                <dt>Conforto</dt>
+                <dd id="metrica_conforto">—</dd><span class="meter"><i id="metrica_conforto_bar"
+                    style="width: 0%"></i></span>
+              </div>
+              <div>
+                <dt>Economia</dt>
+                <dd id="metrica_economia">—</dd><span class="meter"><i id="metrica_economia_bar"
+                    style="width: 0%"></i></span>
+              </div>
+              <div>
+                <dt>Preferência</dt>
+                <dd id="metrica_preferencia">—</dd><span class="meter"><i id="metrica_preferencia_bar"
+                    style="width: 0%"></i></span>
+              </div>
+              <div>
+                <dt>Utilidade</dt>
+                <dd id="metrica_utilidade">—</dd><span class="meter meter-accent"><i id="metrica_utilidade_bar"
+                    style="width: 0%"></i></span>
+              </div>
+              <div>
+                <dt>Pontuação-base</dt>
+                <dd id="metrica_pontuacao_base">—</dd>
+              </div>
+              <div>
+                <dt>Preferência contextual</dt>
+                <dd id="metrica_preferencia_contextual">—</dd>
+              </div>
+              <div>
+                <dt>Pontuação total</dt>
+                <dd id="metrica_pontuacao_total">—</dd>
+              </div>
+              <div>
+                <dt>Influenciada</dt>
+                <dd id="metrica_influenciada">—</dd>
+              </div>
+            </dl>
+          </section>
+
+          <section id="plan-region" class="reasoning-section metrics-region" aria-labelledby="plan-title">
+            <header class="section-heading">
+              <span class="section-number" aria-hidden="true">04</span>
+              <div>
+                <p class="kicker">execução confirmada</p>
+                <h3 id="plan-title">Plano executado</h3>
+              </div>
+            </header>
+            <div class="table-frame">
+              <table class="alternatives-table">
+                <caption class="sr-only">Plano confirmado com estados anterior e novo e resultado da execução</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Ordem</th>
+                    <th scope="col">Dispositivo</th>
+                    <th scope="col">Antes</th>
+                    <th scope="col">Depois</th>
+                    <th scope="col">Resultado</th>
+                  </tr>
+                </thead>
+                <tbody id="plan-list">
+                  <tr>
+                    <td colspan="4" class="table-empty">Nenhuma etapa confirmada foi devolvida.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </div>
+    </dialog>
+
+    <dialog id="cycle-mode-help-modal" class="cycle-mode-help-modal peas-help-modal story-panel"
+      aria-labelledby="cycle-mode-help-title" aria-describedby="cycle-mode-help-description">
+      <div class="modal-shell">
+        <header class="modal-header">
+          <div>
+            <p class="kicker">Guia do agente / modo do ciclo</p>
+            <h2 id="cycle-mode-help-title">Modo reativo</h2>
+            <p id="cycle-mode-help-description" class="modal-description">O agente usa regras fixas e não consulta
+              preferências aprendidas.</p>
+          </div>
+          <button id="close-cycle-mode-help" class="modal-close" type="button" data-dialog="fechar-modo-ciclo"
+            aria-controls="cycle-mode-help-modal" aria-label="Fechar ajuda sobre o modo do ciclo">
+            <span aria-hidden="true">×</span>
+          </button>
+        </header>
+
+        <div class="modal-body cycle-mode-help-body">
+          <section id="cycle-mode-help-reactive" class="cycle-mode-help-panel" data-cycle-help-mode="reativo"
+            data-cycle-help-title="Modo reativo"
+            data-cycle-help-description="O agente usa regras fixas e não consulta preferências aprendidas."
+            aria-labelledby="cycle-mode-help-reactive-title">
+            <header class="section-heading">
+              <span class="section-number" aria-hidden="true">01</span>
+              <div>
+                <p class="kicker">regras centrais</p>
+                <h3 id="cycle-mode-help-reactive-title">O agente reage ao ambiente</h3>
+              </div>
+            </header>
+            <p class="cycle-mode-help-intro">O agente usa regras fixas:</p>
+            <ul class="cycle-mode-help-list">
+              <li>Janela aberta com chuva ou presença externa <span aria-hidden="true">→</span> fechar.</li>
+              <li>Ausência interna <span aria-hidden="true">→</span> desligar dispositivos e fechar a janela.</li>
+              <li>Umidade abaixo de 40% <span aria-hidden="true">→</span> ligar umidificador.</li>
+              <li>Temperatura acima de 25 °C <span aria-hidden="true">→</span> resfriar.</li>
+              <li>Temperatura abaixo de 22 °C <span aria-hidden="true">→</span> interromper ação térmica e fechar
+                quando necessário.</li>
+              <li>Quarto escuro, ocupado e acordado <span aria-hidden="true">→</span> ligar lâmpada.</li>
+            </ul>
+            <p class="cycle-mode-help-note">O modo reativo não usa preferências aprendidas.</p>
+          </section>
+
+          <section id="cycle-mode-help-cognitive" class="cycle-mode-help-panel" data-cycle-help-mode="cognitivo"
+            data-cycle-help-title="Modo cognitivo"
+            data-cycle-help-description="O agente identifica o objetivo prioritário do ciclo e compara alternativas elegíveis para esse objetivo."
+            aria-labelledby="cycle-mode-help-cognitive-title" hidden>
+            <header class="section-heading">
+              <span class="section-number" aria-hidden="true">01</span>
+              <div>
+                <p class="kicker">alternativas elegíveis</p>
+                <h3 id="cycle-mode-help-cognitive-title">O agente compara caminhos</h3>
+              </div>
+            </header>
+            <p class="cycle-mode-help-intro">O agente identifica o objetivo prioritário do ciclo e compara alternativas
+              elegíveis para esse objetivo.</p>
+            <p class="cycle-mode-help-intro">No calor, por exemplo, pode comparar:</p>
+            <ul class="cycle-mode-help-list cycle-mode-help-list-alternatives">
+              <li><strong>Ventilar:</strong> desligar o ar, abrir a janela e ligar o ventilador.</li>
+              <li><strong>Resfriar:</strong> fechar a janela, ligar o ar-condicionado e desligar o ventilador.</li>
+              <li><strong>Manter:</strong> não alterar a climatização.</li>
+            </ul>
+          </section>
+
+        </div>
+      </div>
+    </dialog>
+
+    <dialog id="peas-help-modal" class="peas-help-modal story-panel" aria-labelledby="peas-help-title"
+      aria-describedby="peas-help-description">
+      <div class="modal-shell">
+        <header class="modal-header">
+          <div>
+            <p class="kicker">Guia rápido / modelo do agente</p>
+            <h2 id="peas-help-title">PEAS do quarto</h2>
+            <p id="peas-help-description" class="modal-description">Os quatro elementos que definem como o agente
+              percebe, decide e atua no quarto inteligente.</p>
+          </div>
+          <button id="close-peas-help" class="modal-close" type="button" data-dialog="fechar-peas"
+            aria-controls="peas-help-modal" aria-label="Fechar ajuda sobre o modelo PEAS">
+            <span aria-hidden="true">×</span>
+          </button>
+        </header>
+
+        <div class="modal-body peas-help-body">
+          <section class="peas-help-column" aria-labelledby="peas-elements-title">
+            <div class="peas-help-section-heading">
+              <p class="kicker">Mapa do ambiente</p>
+              <h3 id="peas-elements-title">Os quatro elementos</h3>
+            </div>
+            <dl class="peas-help-list">
+              <div class="peas-help-item">
+                <dt><span class="peas-help-letter" aria-hidden="true">P</span><strong>Performance</strong></dt>
+                <dd>Conforto térmico, economia de energia, iluminação adequada e segurança.</dd>
+              </div>
+              <div class="peas-help-item">
+                <dt><span class="peas-help-letter" aria-hidden="true">E</span><strong>Environment</strong></dt>
+                <dd>Quarto inteligente, estado dinâmico, determinístico e atualizado em ciclos.</dd>
+              </div>
+              <div class="peas-help-item">
+                <dt><span class="peas-help-letter" aria-hidden="true">A</span><strong>Actuators</strong></dt>
+                <dd>Motor da janela, ar-condicionado, ventilador, umidificador e lâmpada.</dd>
+              </div>
+              <div class="peas-help-item">
+                <dt><span class="peas-help-letter" aria-hidden="true">S</span><strong>Sensors</strong></dt>
+                <dd>Temperatura interna, umidade, chuva, luminosidade e presença interna e externa.</dd>
+              </div>
+            </dl>
+          </section>
+
+          <section class="agent-flow-column" aria-labelledby="agent-flow-title">
+            <div class="peas-help-section-heading">
+              <p class="kicker">Ciclo de decisão</p>
+              <h3 id="agent-flow-title">Como o agente funciona</h3>
+            </div>
+            <ol class="agent-flow-list">
+              <li class="agent-flow-step">
+                <span class="agent-flow-label">Sensores</span>
+              </li>
+              <li class="agent-flow-step">
+                <span class="agent-flow-label">Decisão</span>
+              </li>
+              <li class="agent-flow-step">
+                <span class="agent-flow-label">Plano</span>
+              </li>
+              <li class="agent-flow-step">
+                <span class="agent-flow-label">Confirmação</span>
+              </li>
+              <li class="agent-flow-step">
+                <span class="agent-flow-label">Física do quarto</span>
+              </li>
+              <li class="agent-flow-step">
+                <span class="agent-flow-label">Feedback</span>
+              </li>
+            </ol>
+            <div class="agent-flow-notes">
+              <p>Cada comando é confirmado antes de o ciclo avançar.</p>
+              <p>Se uma etapa falhar, o estado anterior é restaurado.</p>
+            </div>
+          </section>
+        </div>
+      </div>
+    </dialog>
+
+    <dialog id="utility-formula-modal" class="utility-formula-modal peas-help-modal story-panel"
+      aria-labelledby="utility-formula-title" aria-describedby="utility-formula-description">
+      <div class="modal-shell">
+        <header class="modal-header">
+          <div>
+            <p class="kicker">Guia do agente / cálculo de decisão</p>
+            <h2 id="utility-formula-title">Fórmula da utilidade</h2>
+            <p id="utility-formula-description" class="modal-description">
+              Critério matemático usado pelo agente cognitivo para ranquear alternativas elegíveis e selecionar a ação ótima.
+            </p>
+          </div>
+          <button id="close-utility-formula-help" class="modal-close" type="button"
+            data-dialog="fechar-formula-utilidade" aria-controls="utility-formula-modal"
+            aria-label="Fechar explicação da fórmula da utilidade">
+            <span aria-hidden="true">×</span>
+          </button>
+        </header>
+
+        <div class="modal-body utility-formula-body">
+          <section class="utility-formula-column utility-formula-main" aria-labelledby="formula-definition-title">
+            <div class="formula-section-heading">
+              <span class="section-number" aria-hidden="true">01</span>
+              <div>
+                <p class="kicker">equação fundamental</p>
+                <h3 id="formula-definition-title">Cálculo de Utilidade U(a)</h3>
+              </div>
+            </div>
+
+            <div class="formula-equation-box" role="region" aria-label="Equação da utilidade">
+              <div class="formula-equation-code">
+                <span class="eq-term eq-result">U(a)</span>
+                <span class="eq-op">=</span>
+                <span class="eq-term eq-comfort">0,6 × conforto(a)</span>
+                <span class="eq-op">+</span>
+                <span class="eq-term eq-economy">0,4 × economia(a)</span>
+                <span class="eq-op">+</span>
+                <span class="eq-term eq-preference">preferência(contexto, a)</span>
+              </div>
+            </div>
+
+            <div class="formula-rules-group">
+              <h4 class="formula-group-title">Propriedades e restrições</h4>
+              <ul class="formula-rules-list">
+                <li><span class="formula-bullet" aria-hidden="true"></span><span>Conforto e economia variam de <code class="formula-pill">0</code> a <code class="formula-pill">1</code>.</span></li>
+                <li><span class="formula-bullet" aria-hidden="true"></span><span>A preferência varia de <code class="formula-pill">-3</code> a <code class="formula-pill">+3</code>.</span></li>
+                <li><span class="formula-bullet" aria-hidden="true"></span><span>A preferência é adicionada diretamente; não existe multiplicador <code class="formula-pill">0,2</code>.</span></li>
+                <li><span class="formula-bullet" aria-hidden="true"></span><span>Alternativas inelegíveis não participam da seleção.</span></li>
+                <li><span class="formula-bullet" aria-hidden="true"></span><span>A pontuação é arredondada para duas casas decimais.</span></li>
+              </ul>
+            </div>
+
+            <div class="formula-tiebreakers-group">
+              <h4 class="formula-group-title">Critérios de desempate (diferença ≤ 0,01)</h4>
+              <ol class="formula-tiebreakers-list">
+                <li><span class="tiebreaker-rank" aria-hidden="true">1</span><span>Manter o estado.</span></li>
+                <li><span class="tiebreaker-rank" aria-hidden="true">2</span><span>Menor custo fixo da ação.</span></li>
+                <li><span class="tiebreaker-rank" aria-hidden="true">3</span><span>Menor número de mudanças físicas pendentes.</span></li>
+                <li><span class="tiebreaker-rank" aria-hidden="true">4</span><span>Ordem canônica das ações.</span></li>
+              </ol>
+            </div>
+          </section>
+
+        </div>
+      </div>
+    </dialog>
+    </div>
+  </main>
+
+  <noscript>
+    <p class="noscript-fallback" role="alert">JavaScript está desativado. A representação estática e os textos de
+      indisponibilidade permanecem disponíveis, mas o simulador não executará ciclos.</p>
+  </noscript>
+
+  <script src="/static/simulador/vendor/three-0.160.1.min.js" defer></script>
+  <script src="/static/simulador/vendor/GLTFLoader.min.js" defer></script>
+  <script src="/static/simulador/room-scene.js" defer></script>
+  <script src="/static/simulador/simulator-ui.js?v=decision-cycle-1" defer></script>
+  <script src="/static/simulador/main.js" defer></script>
+</body>
+
+</html>
