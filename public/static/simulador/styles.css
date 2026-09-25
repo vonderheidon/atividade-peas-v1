@@ -2272,7 +2272,10 @@ input[type="text"]:hover {
   }
 
   .scene-stage {
-    min-height: 600px;
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    aspect-ratio: 1;
   }
 
   .scene-caption {
@@ -2289,17 +2292,8 @@ input[type="text"]:hover {
     inset: 0;
   }
 
-  .device-controls {
-    bottom: 7.25rem;
-    left: 50%;
-    transform: translateX(-50%);
-    width: auto;
-    max-width: calc(100% - 2rem);
-  }
-
-  .scene-temperature-badge {
-    bottom: calc(7.25rem + 50px);
-    right: 1rem;
+  .three-room-canvas {
+    touch-action: pan-y;
   }
 
   .cycle-controls {

@@ -22,6 +22,9 @@
     lamp: 'unknown',
   });
 
+  // Widen the mobile framing so the square viewport keeps more of the room visible.
+  const MOBILE_CAMERA_ZOOM = 0.68;
+
   /**
    * @typedef {'janela' | 'ar' | 'ventilador' | 'umidificador' | 'lampada'} DeviceName
    * @typedef {'open' | 'closed' | 'on' | 'off' | 0 | 1 | 2 | 3 | 'unknown'} DeviceValue
@@ -1986,7 +1989,9 @@
       if (runtime.disposed) return;
       const w = container.clientWidth || 800;
       const h = container.clientHeight || 600;
-      camera.aspect = w / h;
+      const aspect = w / h;
+      camera.aspect = aspect;
+      camera.zoom = aspect < 1.05 ? MOBILE_CAMERA_ZOOM : 1;
       camera.updateProjectionMatrix();
       renderer.setSize(w, h, false);
     };
