@@ -1160,6 +1160,11 @@ body::after {
   font-family: var(--sans); font-size: 16px; letter-spacing: .01em;
 }
 @keyframes panel-arrive { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes decision-content-settle {
+  0% { opacity: 0.42; transform: translateY(8px); }
+  60% { opacity: 0.9; transform: translateY(2px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
 
 /* Motion keyframes para itens dos modais (ritmo compassado e elegante) */
 @keyframes modal-shell-arrive {
@@ -1328,7 +1333,11 @@ body::after {
 }
 @media (prefers-reduced-motion: no-preference) {
   .environment-panel { animation: panel-arrive 320ms cubic-bezier(.2,0,0,1) both; }
-  .decision-card { animation: panel-arrive 320ms 100ms cubic-bezier(.2,0,0,1) both; }
+  /* Keep the entrance on the body so processing can animate the card without replaying it. */
+  .decision-card > .decision-body { animation: panel-arrive 320ms 100ms cubic-bezier(.2,0,0,1) both; }
+  .decision-card > .decision-body.is-content-updated {
+    animation: decision-content-settle 420ms cubic-bezier(.22,1,.36,1) both;
+  }
   .peas-help-modal[open],
   .cycle-mode-help-modal[open],
   .utility-formula-modal[open],
@@ -2154,6 +2163,7 @@ body::after {
   .panel,
   .scene-frame,
   .decision-card,
+  .decision-card > .decision-body,
   .field-control,
   .toggle-line,
   .preset-button,
