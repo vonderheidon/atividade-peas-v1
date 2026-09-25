@@ -149,6 +149,8 @@
   const mountedRoots = new WeakMap();
   /** @type {WeakMap<Document, {decision: JsonRecord, stages: JsonRecord[], state: JsonRecord | null}>} */
   const cycleResults = new WeakMap();
+  /** @type {WeakMap<Document, string>} */
+  const decisionContentSnapshots = new WeakMap();
 
   /** @param {unknown} value @returns {value is JsonRecord} */
   function isRecord(value) {
@@ -978,6 +980,25 @@
     setText(documentRef, 'decision-modal', summary);
   }
 
+  /** @param {Document} documentRef */
+  function animateDecisionContentIfChanged(documentRef) {
+    const body = documentRef.querySelector('#decision-region .decision-body');
+    if (!body) return;
+
+    const signature = Array.from(body.querySelectorAll('[id]'))
+      .filter((element) => !element.closest('[hidden]'))
+      .map((element) => `${element.id}:${element.textContent?.trim() ?? ''}`)
+      .join('\u001f');
+    const previousSignature = decisionContentSnapshots.get(documentRef);
+    decisionContentSnapshots.set(documentRef, signature);
+    if (previousSignature === undefined || previousSignature === signature) return;
+    if (documentRef.defaultView?.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    body.classList.remove('is-content-updated');
+    void body.offsetWidth;
+    body.classList.add('is-content-updated');
+  }
+
   /** @param {JsonRecord | null} snapshot @returns {JsonRecord | null} */
   function snapshotComputation(snapshot) {
     return snapshot ? asRecord(snapshot.computation) : null;
@@ -1213,6 +1234,7 @@
     renderLearningResult(documentRef, learningResult);
     renderFeedbackControls(documentRef, decision, learningResult);
     renderStatus(documentRef, state, uiState, error, response);
+    animateDecisionContentIfChanged(documentRef);
   }
 
   /** @param {unknown} value @returns {boolean} */

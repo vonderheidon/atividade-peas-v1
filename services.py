@@ -1585,13 +1585,21 @@ def _evaluate_objective_alternatives(
         compare_preferences=False,
     )
     winner = _select_cognitive_alternative(alternatives, state, "pontuacao_total")
-    baseline_winner = _select_cognitive_alternative(
-        baseline_alternatives,
-        baseline_state,
-        "pontuacao_total",
+    baseline_eligible = [
+        item for item in baseline_alternatives if item["elegivel"]
+    ]
+    baseline_winner = (
+        _select_cognitive_alternative(
+            baseline_alternatives,
+            baseline_state,
+            "pontuacao_total",
+        )
+        if baseline_eligible
+        else None
     )
     winner_changed_without_preferences = (
-        _alternative_strategy_id(winner) != _alternative_strategy_id(baseline_winner)
+        baseline_winner is None
+        or _alternative_strategy_id(winner) != _alternative_strategy_id(baseline_winner)
     )
     baseline_by_strategy = {
         _alternative_strategy_id(item): item for item in baseline_alternatives
