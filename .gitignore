@@ -28,6 +28,7 @@ htmlcov/
 node_modules/
 scratch/node_modules/
 scratch/
+.vercel/
 npm-debug.log*
 yarn-debug.log*
 *.log

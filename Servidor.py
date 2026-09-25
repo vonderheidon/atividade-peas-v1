@@ -1,14 +1,20 @@
+import os
 from flask import Flask, jsonify, render_template, request
 
 import services
 from interface_bp import inter_bp
 
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+public_static_dir = os.path.join(BASE_DIR, "public", "static")
+static_dir = public_static_dir if os.path.isdir(public_static_dir) else os.path.join(BASE_DIR, "static")
+template_dir = os.path.join(BASE_DIR, "templates")
+
 app = Flask(
     __name__,
-    static_folder="static",
+    static_folder=static_dir,
     static_url_path="/static",
-    template_folder="templates",
+    template_folder=template_dir,
 )
 
 

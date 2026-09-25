@@ -31,14 +31,17 @@ O sistema integra uma interface web com cena 3D interativa (Three.js) a um backe
 ├── services.py           # Regras de negócio, física ambiental, políticas e utilidade
 ├── transition.py         # Motor de transição de estado determinístico
 ├── config.py             # Estado em memória, presets e rastro de eventos
+├── pyproject.toml        # Metadados do projeto e entrypoint para deploy na Vercel
+├── vercel.json           # Configuração de runtime e empacotamento para a Vercel
 ├── requirements.txt      # Dependências Python (Flask)
 ├── Dockerfile            # Configuração para execução em container
 ├── shared/               # Contratos e validação do protocolo PEAS
 │   └── peas_protocol.py  # Tipos, validação de schema e hashing determinístico
 ├── templates/
 │   └── homeinfo.html     # Template principal do observatório/painel
-└── static/
-    └── simulador/        # Cena 3D (Three.js), coordenador multi-abas, persistência e estilos
+└── public/
+    └── static/
+        └── simulador/    # Cena 3D (Three.js), coordenador multi-abas, persistência e estilos
 ```
 
 ---
@@ -99,6 +102,15 @@ O projeto já inclui um `Dockerfile` configurado com verificação de integridad
    ```bash
    docker stop quarto-simulador
    ```
+
+---
+
+### Opção 3: Deploy na Vercel
+
+O repositório está configurado para a Vercel com suporte nativo ao Flask:
+1. Conecte o repositório na [Vercel](https://vercel.com).
+2. O framework preset identificará o Flask via `pyproject.toml` (`[tool.vercel] entrypoint = "Servidor:app"`).
+3. Os assets estáticos e o modelo 3D (`quarto.glb`) são servidos diretamente pela CDN da Vercel através da pasta `public/static/`.
 
 ---
 
