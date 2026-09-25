@@ -1149,7 +1149,7 @@ body::after {
 }
 .modal-close, .table-frame, .metrics-grid > div { border-radius: 10px; }
 /* Preserve the original scene styling, including inherited color tokens. */
-.scene-stage {
+.scene-visual {
   --canvas: #0d1210; --canvas-deep: #090d0c; --surface: #141b18;
   --surface-raised: #1a2420; --surface-soft: #101714; --ink: #e7f0eb;
   --ink-soft: #a6b7ae; --ink-faint: #71827a; --line: #304039;
@@ -1157,6 +1157,7 @@ body::after {
   --accent-soft: #19352b; --warning: #e2b36f; --danger: #df9180;
   --mono: "IBM Plex Mono", "Cascadia Mono", "Courier New", monospace;
   --sans: "Avenir Next", "Trebuchet MS", sans-serif;
+  position: relative;
   font-family: var(--sans); font-size: 16px; letter-spacing: .01em;
 }
 @keyframes panel-arrive { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -1271,40 +1272,48 @@ body::after {
 }
 .scene-stage .three-room-canvas,
 .scene-stage .room-scene-fallback { border-radius: 22px 22px 0 0; }
-.scene-stage .device-controls {
+.scene-tools {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  pointer-events: none;
+}
+.scene-tools .device-controls {
   left: 50%; right: auto; bottom: 18px; top: auto;
   transform: translateX(-50%); gap: 8px; padding: 8px;
   width: max-content; max-width: calc(100% - 24px);
   border: 1px solid #ffffffbf; border-radius: 19px;
   background: #f5f8fcd4; backdrop-filter: blur(16px);
   box-shadow: 0 6px 24px #20334e20;
+  pointer-events: auto;
 }
-.scene-stage .device-control {
+.scene-tools .device-control {
   border-radius: 12px; border-color: #c9d8ea;
   background: #ffffff; color: #41658d;
   box-shadow: 0 2px 6px #20334e0a;
 }
-.scene-stage .device-control:hover,
-.scene-stage .device-control:focus-visible {
+.scene-tools .device-control:hover,
+.scene-tools .device-control:focus-visible {
   background: #e5effc; color: #244d82; border-color: #739bce;
   box-shadow: 0 4px 12px #345f9626;
 }
-.scene-stage .device-control:focus-visible { outline: 2px solid #345f96; outline-offset: 3px; }
-.scene-stage .device-control[data-device]:is(.is-active, [data-confirmed-value="1"], [data-active="true"]) {
+.scene-tools .device-control:focus-visible { outline: 2px solid #345f96; outline-offset: 3px; }
+.scene-tools .device-control[data-device]:is(.is-active, [data-confirmed-value="1"], [data-active="true"]) {
   color: #ffffff; background: #345f96; border-color: #284e80;
   box-shadow: 0 3px 10px #345f9640;
 }
-.scene-stage .device-tooltip { background: #25476e; border-color: #25476e; font-family: "Segoe UI", sans-serif; box-shadow: 0 4px 12px #20334e20; }
-.scene-stage .device-tooltip::after { border-top-color: #25476e; }
-.scene-stage .scene-temperature-badge {
+.scene-tools .device-tooltip { background: #25476e; border-color: #25476e; font-family: "Segoe UI", sans-serif; box-shadow: 0 4px 12px #20334e20; }
+.scene-tools .device-tooltip::after { border-top-color: #25476e; }
+.scene-tools .scene-temperature-badge {
   top: 16px; right: 16px; bottom: auto; height: 40px;
   border-radius: 12px; border: 1px solid #ffffffbf;
   background: #f7faffd6; color: #345f96;
   font-family: "Segoe UI", sans-serif; box-shadow: 0 4px 16px #20334e14;
   -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+  pointer-events: auto;
 }
-.scene-stage .scene-temp-icon, .scene-stage .scene-temp-value { color: #345f96; }
-.scene-stage .scene-temp-label { color: #52657c; letter-spacing: .025em; }
+.scene-tools .scene-temp-icon, .scene-tools .scene-temp-value { color: #345f96; }
+.scene-tools .scene-temp-label { color: #52657c; letter-spacing: .025em; }
 .scene-frame > .cycle-controls { gap: 8px; padding: 12px; border-top: 1px solid #e0e7f0; }
 .scene-frame > .cycle-controls .cycle-mode-control { flex: 1 1 170px; display: flex; border: 0; border-radius: 9px; gap: 8px; padding: 6px 10px; }
 .scene-frame > .cycle-controls .cycle-mode-control select {
@@ -2193,5 +2202,60 @@ body::after {
     transition: none !important;
     animation: none !important;
     transform: none !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .scene-stage {
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    aspect-ratio: 1;
+  }
+
+  .scene-tools {
+    position: static;
+    display: grid;
+    justify-items: center;
+    gap: 10px;
+    padding: 10px 12px 12px;
+    border-top: 1px solid #e0e7f0;
+    background: #f7faff;
+    pointer-events: auto;
+  }
+
+  .scene-tools .device-controls {
+    position: static;
+    inset: auto;
+    z-index: auto;
+    transform: none;
+    width: 100%;
+    max-width: 100%;
+    justify-content: center;
+    gap: clamp(4px, 2vw, 8px);
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  .scene-tools .device-control {
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .scene-tools .scene-temperature-badge {
+    position: static;
+    inset: auto;
+    justify-self: center;
+    width: max-content;
+    max-width: 100%;
+    margin: 0;
   }
 }
