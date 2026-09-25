@@ -33,6 +33,25 @@ html {
   min-width: 320px;
   background: var(--canvas);
   scroll-behavior: smooth;
+  scrollbar-gutter: stable;
+}
+
+html:has(dialog[open]),
+body:has(dialog[open]),
+html.modal-open,
+body.modal-open {
+  overflow: hidden !important;
+}
+
+dialog {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  overscroll-behavior: contain;
+}
+
+.modal-body {
+  overscroll-behavior: contain;
 }
 
 body {
@@ -1579,7 +1598,7 @@ input[type="text"]:hover {
   justify-content: space-between;
   gap: 0.8rem;
   width: 100%;
-  margin-top: 0.35rem;
+  margin-top: 1.125rem;
   padding: 0.6rem 0.7rem;
   color: var(--canvas-deep);
   border-color: var(--accent);

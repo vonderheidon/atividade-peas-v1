@@ -10,13 +10,14 @@ O sistema integra uma interface web com cena 3D interativa (Three.js) a um backe
 
 - **Modo Reativo**: Decisões imediatas baseadas em regras de precedência fixa e salvaguardas físicas (ex.: impedir abertura da janela sob chuva ou ligar o ar-condicionado sem antes fechar a janela).
 - **Modo Cognitivo**: Avaliação de alternativas ponderadas por função de utilidade, balanceando conforto térmico, economia de energia e minimização de transições de atuadores. Suporta adaptação contextual via feedback do usuário (aceitar, rejeitar ou corrigir decisões).
+- **Suporte Multi-Aba / Multi-Cliente**: Coordenação determinística entre abas via IndexedDB e BroadcastChannel, com sincronização de snapshots e transições de ciclo.
 
 ---
 
 ## Tecnologias Utilizadas
 
 - **Backend**: Python 3.12+, Flask
-- **Frontend**: HTML5, CSS3, JavaScript (ES6+), Three.js (WebGL com carregamento de modelo GLTF)
+- **Frontend**: HTML5, CSS3, JavaScript (ES6+), Three.js (WebGL com carregamento de modelo GLTF), IndexedDB
 - **Gerenciamento e Execução**: `uv` e `Docker`
 
 ---
@@ -28,13 +29,16 @@ O sistema integra uma interface web com cena 3D interativa (Three.js) a um backe
 ├── Servidor.py           # Ponto de entrada do servidor Flask (porta 5050)
 ├── interface_bp.py       # Blueprint com as rotas REST da API do simulador
 ├── services.py           # Regras de negócio, física ambiental, políticas e utilidade
-├── config.py             # Estado autoritativo em memória, presets e rastro de eventos
+├── transition.py         # Motor de transição de estado determinístico
+├── config.py             # Estado em memória, presets e rastro de eventos
 ├── requirements.txt      # Dependências Python (Flask)
 ├── Dockerfile            # Configuração para execução em container
+├── shared/               # Contratos e validação do protocolo PEAS
+│   └── peas_protocol.py  # Tipos, validação de schema e hashing determinístico
 ├── templates/
 │   └── homeinfo.html     # Template principal do observatório/painel
 └── static/
-    └── simulador/        # Scripts Three.js, cena 3D, estilos e assets (quarto.glb)
+    └── simulador/        # Cena 3D (Three.js), coordenador multi-abas, persistência e estilos
 ```
 
 ---

@@ -28,6 +28,24 @@
   --card-border-idle: #ffffff;
   --card-border-hover: #c4d7ec;
 }
+html {
+  scrollbar-gutter: stable;
+}
+html:has(dialog[open]),
+body:has(dialog[open]),
+html.modal-open,
+body.modal-open {
+  overflow: hidden !important;
+}
+dialog {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  overscroll-behavior: contain;
+}
+.modal-body {
+  overscroll-behavior: contain;
+}
 body { position: relative; isolation: isolate; background-color: #0e2a47; background-image: none; font-size: 14px; letter-spacing: 0; }
 body::before {
   content: "";
@@ -955,6 +973,13 @@ body::after {
   border: 1px solid #d0e0f3;
 }
 
+.formula-tiebreakers-intro {
+  margin: 0 0 8px;
+  color: var(--ink);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
 .formula-tiebreakers-list {
   display: flex;
   flex-direction: column;
@@ -995,7 +1020,7 @@ body::after {
 
 .reasoning-modal .modal-shell { grid-template-rows: auto minmax(0, 1fr); min-height: 0; overflow: hidden; }
 .reasoning-modal .modal-header { position: sticky; top: 0; z-index: 3; }
-.reasoning-modal .modal-body { grid-template-columns: minmax(0, .76fr) minmax(0, 1.24fr); min-height: 0; overflow: auto; }
+.reasoning-modal .modal-body { grid-template-columns: minmax(0, 1fr); align-content: start; min-height: 0; overflow: auto; }
 .reasoning-modal .alternatives-table { min-width: 0; table-layout: fixed; }
 .reasoning-modal .alternatives-table th,
 .reasoning-modal .alternatives-table td { overflow-wrap: anywhere; }
@@ -1003,7 +1028,7 @@ body::after {
 .reasoning-modal .modal-header h2 { max-width: none; margin-top: 8px; font-size: clamp(24px, 3vw, 32px); line-height: 1.18; letter-spacing: -.035em; }
 .reasoning-modal .modal-description { max-width: 68ch; margin-top: 10px; color: var(--ink-soft); font-size: 13px; line-height: 1.6; }
 .reasoning-modal .modal-body { padding: 20px; gap: 16px; background: var(--surface-soft); scrollbar-width: thin; scrollbar-color: var(--line-strong) var(--surface-soft); scrollbar-gutter: stable; }
-.reasoning-modal .reasoning-section { padding: 20px; border: 1px solid var(--line); border-radius: 14px; }
+.reasoning-modal .reasoning-section { align-self: start; padding: 20px; border: 1px solid var(--line); border-radius: 14px; }
 .reasoning-modal .section-heading { align-items: center; gap: 12px; margin-bottom: 18px; }
 .reasoning-modal .section-number { width: 34px; height: 34px; border: 0; border-radius: 10px; background: var(--accent-soft); font-size: 11px; font-weight: 700; }
 .reasoning-modal .section-heading h3 { margin-top: 4px; font-size: 16px; line-height: 1.3; }
@@ -1045,10 +1070,27 @@ body::after {
     0 2px 6px rgba(52, 95, 150, 0.18),
     0 0 8px 1px rgba(96, 165, 250, 0.4) !important;
 }
-.reasoning-modal .evidence-list { border-top: 0; }
-.reasoning-modal .evidence-list li { gap: 10px; padding: 12px 0; }
-.reasoning-modal .evidence-list li:first-child { padding-top: 0; }
-.reasoning-modal .evidence-list li:last-child { padding-bottom: 0; }
+.reasoning-modal .evidence-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; border-top: 0; }
+.reasoning-modal .evidence-list li,
+.reasoning-modal .evidence-list li:last-child {
+  align-content: start;
+  min-width: 0;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+  transition: transform 200ms var(--ease-out-quint),
+              border-color 200ms ease,
+              box-shadow 200ms ease,
+              background-color 200ms ease;
+}
+.reasoning-modal .evidence-list li:hover {
+  transform: translateY(-2px);
+  border-color: #a4c2e8;
+  background: #ffffff;
+  box-shadow: 0 6px 16px rgba(52, 95, 150, 0.08);
+}
 .reasoning-modal .evidence-index { border: 0; border-radius: 6px; background: var(--surface-raised); font-size: 10px; }
 .reasoning-modal .evidence-list strong { font-size: 13px; font-weight: 650; }
 .reasoning-modal .evidence-list p { color: var(--ink-soft); font-size: 12px; line-height: 1.65; }
@@ -1059,11 +1101,36 @@ body::after {
 .reasoning-modal .alternatives-table tbody tr:hover { background: var(--surface-soft); }
 .reasoning-modal .table-empty { padding: 20px 14px; font-size: 12px !important; font-weight: 400 !important; }
 .reasoning-modal .metrics-grid { gap: 10px; background: transparent; }
-.reasoning-modal .metrics-grid > div { padding: 14px 16px; border: 1px solid var(--line); background: var(--surface-soft); }
+.reasoning-modal .metrics-grid > div {
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+  transition: transform 200ms var(--ease-out-quint),
+              border-color 200ms ease,
+              box-shadow 200ms ease,
+              background-color 200ms ease;
+}
+.reasoning-modal .metrics-grid > div:hover {
+  transform: translateY(-2px);
+  border-color: #a4c2e8;
+  background: #ffffff;
+  box-shadow: 0 6px 16px rgba(52, 95, 150, 0.08);
+}
 .reasoning-modal .metrics-grid dt { color: var(--ink-soft); font-size: 10px; line-height: 1.5; letter-spacing: .04em; }
 .reasoning-modal .metrics-grid dd { margin: 8px 0; color: var(--accent-strong); font-size: 22px; line-height: 1.2; font-weight: 600; font-variant-numeric: tabular-nums; }
 .reasoning-modal .meter { height: 4px; margin-top: 12px; border-radius: 99px; }
 .reasoning-modal .meter i { background: var(--accent); border-radius: inherit; }
+.reasoning-modal #cycle-metrics-region .renderer-data-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.reasoning-modal #cycle-metrics-region .renderer-data-grid > div:has(#cycle_metric_blocks) { grid-column: span 2; }
+.reasoning-modal #decision-preference-region .renderer-data-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.reasoning-modal .table-scroll-hint { display: none; margin: -6px 0 12px; color: var(--ink-soft); font-size: 12px; }
+@media (max-width: 760px) {
+  .reasoning-modal .evidence-list { grid-template-columns: 1fr; }
+  .reasoning-modal #cycle-metrics-region .renderer-data-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .reasoning-modal #decision-preference-region .renderer-data-grid { grid-template-columns: 1fr; }
+  .reasoning-modal .table-scroll-hint { display: block; }
+}
 @media (max-width: 600px) {
   .reasoning-modal .modal-header { padding: 20px; gap: 12px; }
   .reasoning-modal .modal-body { padding: 12px; gap: 12px; }
@@ -1262,33 +1329,38 @@ body::after {
 @media (prefers-reduced-motion: no-preference) {
   .environment-panel { animation: panel-arrive 320ms cubic-bezier(.2,0,0,1) both; }
   .decision-card { animation: panel-arrive 320ms 100ms cubic-bezier(.2,0,0,1) both; }
-  .reasoning-modal[open] { animation: panel-arrive 300ms cubic-bezier(.2,0,0,1) both; }
   .peas-help-modal[open],
-  .cycle-mode-help-modal[open] {
+  .cycle-mode-help-modal[open],
+  .utility-formula-modal[open],
+  .reasoning-modal[open] {
     animation: modal-shell-arrive 480ms cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 
   /* Sequência Motion: Header dos Modais */
   .peas-help-modal[open] .modal-header .kicker,
   .cycle-mode-help-modal[open] .modal-header .kicker,
+  .utility-formula-modal[open] .modal-header .kicker,
   .reasoning-modal[open] .modal-header .kicker {
     animation: modal-item-rise-subtle 550ms cubic-bezier(0.16, 1, 0.3, 1) 80ms both;
   }
 
   .peas-help-modal[open] .modal-header h2,
   .cycle-mode-help-modal[open] .modal-header h2,
+  .utility-formula-modal[open] .modal-header h2,
   .reasoning-modal[open] .modal-header h2 {
     animation: modal-item-rise 600ms cubic-bezier(0.16, 1, 0.3, 1) 200ms both;
   }
 
   .peas-help-modal[open] .modal-header .modal-description,
   .cycle-mode-help-modal[open] .modal-header .modal-description,
+  .utility-formula-modal[open] .modal-header .modal-description,
   .reasoning-modal[open] .modal-header .modal-description {
     animation: modal-item-rise-subtle 600ms cubic-bezier(0.16, 1, 0.3, 1) 320ms both;
   }
 
   .peas-help-modal[open] .modal-header .modal-close,
   .cycle-mode-help-modal[open] .modal-header .modal-close,
+  .utility-formula-modal[open] .modal-header .modal-close,
   .reasoning-modal[open] .modal-header .modal-close {
     animation: modal-badge-scale 550ms cubic-bezier(0.16, 1, 0.3, 1) 240ms both;
   }
@@ -1437,80 +1509,6 @@ body::after {
     animation: modal-callout-reveal 650ms cubic-bezier(0.16, 1, 0.3, 1) 1760ms both;
   }
 
-  /* Sequência Motion: Modal de Raciocínio */
-  .reasoning-modal[open] .reasoning-section:nth-of-type(1) {
-    animation: modal-item-rise 550ms cubic-bezier(0.16, 1, 0.3, 1) 240ms both;
-  }
-  .reasoning-modal[open] .reasoning-section:nth-of-type(2) {
-    animation: modal-item-rise 550ms cubic-bezier(0.16, 1, 0.3, 1) 320ms both;
-  }
-  .reasoning-modal[open] .formula-help-trigger {
-    animation: modal-badge-scale 550ms cubic-bezier(0.34, 1.4, 0.64, 1) 400ms backwards,
-      helper-glow-orbit 4s linear infinite;
-  }
-  .reasoning-modal[open] .evidence-list li:nth-child(1) {
-    animation: modal-item-rise 600ms cubic-bezier(0.16, 1, 0.3, 1) 400ms both;
-  }
-  .reasoning-modal[open] .evidence-list li:nth-child(2) {
-    animation: modal-item-rise 600ms cubic-bezier(0.16, 1, 0.3, 1) 520ms both;
-  }
-  .reasoning-modal[open] .evidence-list li:nth-child(3) {
-    animation: modal-item-rise 600ms cubic-bezier(0.16, 1, 0.3, 1) 640ms both;
-  }
-  .reasoning-modal[open] .evidence-list li:nth-child(4) {
-    animation: modal-item-rise 600ms cubic-bezier(0.16, 1, 0.3, 1) 760ms both;
-  }
-  .reasoning-modal[open] .evidence-list li:nth-child(5) {
-    animation: modal-item-rise 600ms cubic-bezier(0.16, 1, 0.3, 1) 880ms both;
-  }
-  .reasoning-modal[open] .evidence-list li:nth-child(6) {
-    animation: modal-item-rise 600ms cubic-bezier(0.16, 1, 0.3, 1) 1000ms both;
-  }
-
-  /* Seção 03: Métricas (Header + todos os 8 cards em cascata sequencial) */
-  .reasoning-modal[open] #metrics-region .section-heading .section-number {
-    animation: modal-badge-scale 650ms cubic-bezier(0.34, 1.4, 0.64, 1) 400ms both;
-  }
-  .reasoning-modal[open] #metrics-region .section-heading div {
-    animation: modal-item-rise-subtle 600ms cubic-bezier(0.16, 1, 0.3, 1) 480ms both;
-  }
-
-  .reasoning-modal[open] .metrics-grid > div:nth-child(1) {
-    animation: modal-item-rise 650ms cubic-bezier(0.16, 1, 0.3, 1) 560ms both;
-  }
-  .reasoning-modal[open] .metrics-grid > div:nth-child(2) {
-    animation: modal-item-rise 650ms cubic-bezier(0.16, 1, 0.3, 1) 680ms both;
-  }
-  .reasoning-modal[open] .metrics-grid > div:nth-child(3) {
-    animation: modal-item-rise 650ms cubic-bezier(0.16, 1, 0.3, 1) 800ms both;
-  }
-  .reasoning-modal[open] .metrics-grid > div:nth-child(4) {
-    animation: modal-item-rise 650ms cubic-bezier(0.16, 1, 0.3, 1) 920ms both;
-  }
-  .reasoning-modal[open] .metrics-grid > div:nth-child(5) {
-    animation: modal-item-rise 650ms cubic-bezier(0.16, 1, 0.3, 1) 1040ms both;
-  }
-  .reasoning-modal[open] .metrics-grid > div:nth-child(6) {
-    animation: modal-item-rise 650ms cubic-bezier(0.16, 1, 0.3, 1) 1160ms both;
-  }
-  .reasoning-modal[open] .metrics-grid > div:nth-child(7) {
-    animation: modal-item-rise 650ms cubic-bezier(0.16, 1, 0.3, 1) 1280ms both;
-  }
-  .reasoning-modal[open] .metrics-grid > div:nth-child(8) {
-    animation: modal-item-rise 650ms cubic-bezier(0.16, 1, 0.3, 1) 1400ms both;
-  }
-
-  /* Seção 04: Plano Executado */
-  .reasoning-modal[open] #plan-region .section-heading .section-number {
-    animation: modal-badge-scale 650ms cubic-bezier(0.34, 1.4, 0.64, 1) 1480ms both;
-  }
-  .reasoning-modal[open] #plan-region .section-heading div {
-    animation: modal-item-rise-subtle 600ms cubic-bezier(0.16, 1, 0.3, 1) 1540ms both;
-  }
-  .reasoning-modal[open] #plan-region .table-frame {
-    animation: modal-item-rise 650ms cubic-bezier(0.16, 1, 0.3, 1) 1620ms both;
-  }
-
   /* Sequência Motion: Modal Fórmula da Utilidade */
   .utility-formula-modal[open] .utility-formula-column:nth-child(1) {
     animation: modal-item-rise 650ms cubic-bezier(0.16, 1, 0.3, 1) 320ms both;
@@ -1531,32 +1529,145 @@ body::after {
     animation: modal-item-rise-subtle 550ms cubic-bezier(0.16, 1, 0.3, 1) 720ms both;
   }
   .utility-formula-modal[open] .formula-rules-list li:nth-child(2) {
-    animation: modal-item-rise-subtle 550ms cubic-bezier(0.16, 1, 0.3, 1) 820ms both;
+    animation: modal-item-rise-subtle 550ms cubic-bezier(0.16, 1, 0.3, 1) 800ms both;
   }
   .utility-formula-modal[open] .formula-rules-list li:nth-child(3) {
-    animation: modal-item-rise-subtle 550ms cubic-bezier(0.16, 1, 0.3, 1) 920ms both;
+    animation: modal-item-rise-subtle 550ms cubic-bezier(0.16, 1, 0.3, 1) 880ms both;
   }
   .utility-formula-modal[open] .formula-rules-list li:nth-child(4) {
-    animation: modal-item-rise-subtle 550ms cubic-bezier(0.16, 1, 0.3, 1) 1020ms both;
+    animation: modal-item-rise-subtle 550ms cubic-bezier(0.16, 1, 0.3, 1) 960ms both;
   }
   .utility-formula-modal[open] .formula-rules-list li:nth-child(5) {
+    animation: modal-item-rise-subtle 550ms cubic-bezier(0.16, 1, 0.3, 1) 1040ms both;
+  }
+  .utility-formula-modal[open] .formula-rules-list li:nth-child(6) {
     animation: modal-item-rise-subtle 550ms cubic-bezier(0.16, 1, 0.3, 1) 1120ms both;
+  }
+  .utility-formula-modal[open] .formula-rules-list li:nth-child(7) {
+    animation: modal-item-rise-subtle 550ms cubic-bezier(0.16, 1, 0.3, 1) 1200ms both;
+  }
+  .utility-formula-modal[open] .formula-rules-list li:nth-child(n+8) {
+    animation: modal-item-rise-subtle 550ms cubic-bezier(0.16, 1, 0.3, 1) 1260ms both;
   }
 
   .utility-formula-modal[open] .formula-tiebreakers-group {
-    animation: modal-item-rise 600ms cubic-bezier(0.16, 1, 0.3, 1) 1200ms both;
+    animation: modal-item-rise 600ms cubic-bezier(0.16, 1, 0.3, 1) 1280ms both;
   }
   .utility-formula-modal[open] .formula-tiebreakers-list li:nth-child(1) {
-    animation: modal-item-rise-subtle 550ms cubic-bezier(0.16, 1, 0.3, 1) 1280ms both;
-  }
-  .utility-formula-modal[open] .formula-tiebreakers-list li:nth-child(2) {
     animation: modal-item-rise-subtle 550ms cubic-bezier(0.16, 1, 0.3, 1) 1360ms both;
   }
-  .utility-formula-modal[open] .formula-tiebreakers-list li:nth-child(3) {
+  .utility-formula-modal[open] .formula-tiebreakers-list li:nth-child(2) {
     animation: modal-item-rise-subtle 550ms cubic-bezier(0.16, 1, 0.3, 1) 1440ms both;
   }
-  .utility-formula-modal[open] .formula-tiebreakers-list li:nth-child(4) {
+  .utility-formula-modal[open] .formula-tiebreakers-list li:nth-child(3) {
     animation: modal-item-rise-subtle 550ms cubic-bezier(0.16, 1, 0.3, 1) 1520ms both;
+  }
+  .utility-formula-modal[open] .formula-tiebreakers-list li:nth-child(n+4) {
+    animation: modal-item-rise-subtle 550ms cubic-bezier(0.16, 1, 0.3, 1) 1600ms both;
+  }
+
+  /* Sequência Motion: Modal de Raciocínio */
+  /* Seção 00: Visão Geral / Estado Essencial da Decisão */
+  .reasoning-modal[open] #decision-summary-region .section-heading .section-number {
+    animation: modal-badge-scale 650ms cubic-bezier(0.34, 1.4, 0.64, 1) 120ms both;
+  }
+  .reasoning-modal[open] #decision-summary-region .section-heading div {
+    animation: modal-item-rise-subtle 600ms cubic-bezier(0.16, 1, 0.3, 1) 160ms both;
+  }
+  .reasoning-modal[open] #decision-summary-region .decision-facts > div {
+    animation: modal-item-rise 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .reasoning-modal[open] #decision-summary-region .decision-facts > div:nth-child(1) { animation-delay: 200ms; }
+  .reasoning-modal[open] #decision-summary-region .decision-facts > div:nth-child(2) { animation-delay: 240ms; }
+  .reasoning-modal[open] #decision-summary-region .decision-facts > div:nth-child(3) { animation-delay: 280ms; }
+
+  /* Seção 01: Evidências */
+  .reasoning-modal[open] #evidence-region .section-heading .section-number {
+    animation: modal-badge-scale 650ms cubic-bezier(0.34, 1.4, 0.64, 1) 240ms both;
+  }
+  .reasoning-modal[open] #evidence-region .section-heading div {
+    animation: modal-item-rise-subtle 600ms cubic-bezier(0.16, 1, 0.3, 1) 280ms both;
+  }
+  .reasoning-modal[open] .evidence-list li:nth-child(1) {
+    animation: modal-item-rise 600ms cubic-bezier(0.16, 1, 0.3, 1) 340ms both;
+  }
+  .reasoning-modal[open] .evidence-list li:nth-child(1) .evidence-index {
+    animation: modal-badge-scale 550ms cubic-bezier(0.34, 1.4, 0.64, 1) 400ms both;
+  }
+  .reasoning-modal[open] .evidence-list li:nth-child(2) {
+    animation: modal-item-rise 600ms cubic-bezier(0.16, 1, 0.3, 1) 440ms both;
+  }
+  .reasoning-modal[open] .evidence-list li:nth-child(2) .evidence-index {
+    animation: modal-badge-scale 550ms cubic-bezier(0.34, 1.4, 0.64, 1) 500ms both;
+  }
+  .reasoning-modal[open] .evidence-list li:nth-child(3) {
+    animation: modal-item-rise 600ms cubic-bezier(0.16, 1, 0.3, 1) 540ms both;
+  }
+  .reasoning-modal[open] .evidence-list li:nth-child(3) .evidence-index {
+    animation: modal-badge-scale 550ms cubic-bezier(0.34, 1.4, 0.64, 1) 600ms both;
+  }
+
+  /* Seção 02: Comparação de Alternativas */
+  .reasoning-modal[open] #alternatives-region .section-heading .section-number {
+    animation: modal-badge-scale 650ms cubic-bezier(0.34, 1.4, 0.64, 1) 480ms both;
+  }
+  .reasoning-modal[open] #alternatives-region .section-heading div {
+    animation: modal-item-rise-subtle 600ms cubic-bezier(0.16, 1, 0.3, 1) 520ms both;
+  }
+  .reasoning-modal[open] .formula-help-trigger {
+    animation: modal-badge-scale 550ms cubic-bezier(0.34, 1.4, 0.64, 1) 560ms backwards,
+      helper-glow-orbit 4s linear infinite;
+  }
+  .reasoning-modal[open] #alternatives-region .table-scroll-hint {
+    animation: modal-item-rise-subtle 550ms cubic-bezier(0.16, 1, 0.3, 1) 580ms both;
+  }
+  .reasoning-modal[open] #alternatives-region .table-frame {
+    animation: modal-item-rise 650ms cubic-bezier(0.16, 1, 0.3, 1) 620ms both;
+  }
+
+  /* Seção 03: Métricas da Alternativa Escolhida */
+  .reasoning-modal[open] #metrics-region .section-heading .section-number {
+    animation: modal-badge-scale 650ms cubic-bezier(0.34, 1.4, 0.64, 1) 660ms both;
+  }
+  .reasoning-modal[open] #metrics-region .section-heading div {
+    animation: modal-item-rise-subtle 600ms cubic-bezier(0.16, 1, 0.3, 1) 700ms both;
+  }
+  .reasoning-modal[open] .metrics-grid > div:nth-child(1) {
+    animation: modal-item-rise 650ms cubic-bezier(0.16, 1, 0.3, 1) 740ms both;
+  }
+  .reasoning-modal[open] .metrics-grid > div:nth-child(2) {
+    animation: modal-item-rise 650ms cubic-bezier(0.16, 1, 0.3, 1) 820ms both;
+  }
+  .reasoning-modal[open] .metrics-grid > div:nth-child(3) {
+    animation: modal-item-rise 650ms cubic-bezier(0.16, 1, 0.3, 1) 900ms both;
+  }
+  .reasoning-modal[open] .metrics-grid > div:nth-child(4) {
+    animation: modal-item-rise 650ms cubic-bezier(0.16, 1, 0.3, 1) 980ms both;
+  }
+
+  /* Seção 04: Plano Executado */
+  .reasoning-modal[open] #plan-region .section-heading .section-number {
+    animation: modal-badge-scale 650ms cubic-bezier(0.34, 1.4, 0.64, 1) 1040ms both;
+  }
+  .reasoning-modal[open] #plan-region .section-heading div {
+    animation: modal-item-rise-subtle 600ms cubic-bezier(0.16, 1, 0.3, 1) 1080ms both;
+  }
+  .reasoning-modal[open] #plan-region .table-frame {
+    animation: modal-item-rise 650ms cubic-bezier(0.16, 1, 0.3, 1) 1140ms both;
+  }
+
+  /* Seções Dinâmicas (Ciclo, Preferência, Resumo, Episódio quando visíveis) */
+  .reasoning-modal[open] .reasoning-section:not([hidden]):nth-of-type(n+5) .section-heading .section-number {
+    animation: modal-badge-scale 650ms cubic-bezier(0.34, 1.4, 0.64, 1) both;
+  }
+  .reasoning-modal[open] .reasoning-section:not([hidden]):nth-of-type(n+5) .section-heading div {
+    animation: modal-item-rise-subtle 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .reasoning-modal[open] .reasoning-section:not([hidden]):nth-of-type(n+5) .modal-description {
+    animation: modal-item-rise-subtle 550ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .reasoning-modal[open] .reasoning-section:not([hidden]):nth-of-type(n+5) .renderer-data-grid {
+    animation: modal-item-rise 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 
 }
@@ -1572,9 +1683,6 @@ body::after {
   .environment-panel { grid-column: 1; grid-row: 3; }
   .decision-card { grid-column: 1; grid-row: 4; }
   .context-panel { grid-column: 1; grid-row: 5; align-self: start; }
-}
-@media (max-width: 1023px) {
-  .reasoning-modal .modal-body { grid-template-columns: 1fr; }
 }
 @media (max-width: 480px) {
   .environment-body, .decision-body { padding: 12px; }
@@ -1675,79 +1783,88 @@ body::after {
 .decision-card #decision-result-status { padding: 0; border-radius: 0; background: none; }
 .decision-card [hidden] { display: none !important; }
 
-/* Acordeão com interpolação fluida de altura */
+/* Botão Ver detalhes da decisão: acionamento direto do modal de raciocínio */
 .decision-details {
   margin-top: 10px;
-  border-radius: 14px;
-  border: 0;
-  background: transparent;
-  transition: border-color 280ms ease, background-color 280ms ease, box-shadow 280ms ease;
-  overflow: visible;
 }
-.decision-details[open] {
-  background: #ffffff;
-  border: 1px solid #b8d2ee;
-  box-shadow: 0 6px 20px rgba(52, 95, 150, 0.08);
-  overflow: hidden;
-}
-.decision-details > summary {
+
+.decision-details-button,
+.decision-details .reasoning-button {
+  width: 100%;
   cursor: pointer;
-  padding: 11px 14px;
+  padding: 11px 16px;
+  font-family: inherit;
+  font-size: 0.88rem;
   font-weight: 600;
-  color: var(--accent-strong);
+  color: var(--accent-strong, #1a3c68);
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
   user-select: none;
   border-radius: 12px;
   background: #eaf1fb;
   border: 1px solid #b8d2ee;
   position: relative;
+  text-align: left;
+  margin-top: 0;
   transition: background-color 200ms ease, border-color 200ms ease, color 200ms ease, transform 200ms var(--ease-out-quint), box-shadow 200ms ease;
 }
-.decision-details > summary:hover {
+
+.decision-details-button:hover,
+.decision-details .reasoning-button:hover {
   background: #dfecf9;
   border-color: #8daed8;
   color: #1a3c68;
   box-shadow: 0 4px 14px rgba(32, 51, 78, 0.1);
   transform: translateY(-1px);
 }
-.decision-details > summary:active {
+
+.decision-details-button:active,
+.decision-details .reasoning-button:active {
   transform: translateY(0) scale(0.99);
 }
-.decision-details[open] > summary {
-  border-radius: 13px 13px 0 0;
-  border: none;
-  border-bottom: 1px solid #dbe6f4;
-  background: #f4f8fd;
-  transform: none;
-  box-shadow: none;
+
+.decision-details-button:focus-visible,
+.decision-details .reasoning-button:focus-visible {
+  outline: 2px solid var(--accent, #3b82f6);
+  outline-offset: 2px;
 }
-.decision-details::details-content {
-  transition: block-size 360ms var(--ease-out-quint),
-              opacity 280ms var(--ease-out-quint),
-              content-visibility 360ms allow-discrete;
-  overflow: hidden;
-  block-size: 0;
-  opacity: 0;
-  padding: 0;
+
+.decision-details-button .button-arrow,
+.decision-details .reasoning-button .button-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  height: auto;
+  font-size: 1.05rem;
+  line-height: 1;
+  color: var(--accent-strong, #1a3c68);
+  opacity: 0.75;
+  transition: transform 220ms var(--ease-out-back), opacity 200ms ease;
 }
-.decision-details[open]::details-content {
-  block-size: auto;
+
+.decision-details-button:hover .button-arrow,
+.decision-details-button:focus-visible .button-arrow,
+.decision-details .reasoning-button:hover .button-arrow,
+.decision-details .reasoning-button:focus-visible .button-arrow {
   opacity: 1;
-  padding: 10px 14px 16px;
+  transform: translate(3px, -3px);
 }
-.decision-details[open] .decision-facts > div {
-  animation: fact-card-cascade 320ms var(--ease-out-quint) both;
+
+/* Seção 00: Visão Geral / Estado Essencial da Decisão no Modal */
+.decision-modal-summary {
+  align-self: start;
+  padding: 16px 20px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
 }
-.decision-details[open] .decision-facts > div:nth-child(1) { animation-delay: 30ms; }
-.decision-details[open] .decision-facts > div:nth-child(2) { animation-delay: 60ms; }
-.decision-details[open] .decision-facts > div:nth-child(3) { animation-delay: 90ms; }
-.decision-details[open] .identity-facts > div {
-  animation: fact-card-cascade 320ms var(--ease-out-quint) both;
+
+.decision-modal-summary .decision-facts {
+  margin-top: 12px;
 }
-.decision-details[open] .identity-facts > div:nth-child(odd) { animation-delay: 110ms; }
-.decision-details[open] .identity-facts > div:nth-child(even) { animation-delay: 140ms; }
 @keyframes fact-card-cascade {
   from {
     opacity: 0;
@@ -1879,6 +1996,45 @@ body::after {
   display: none !important;
 }
 
+/* Nota de Influência da Decisão */
+#decision-influence {
+  margin: 10px 0 0;
+  padding: 8px 12px;
+  border-radius: 9px;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  color: var(--ink-soft);
+  font-size: 11px;
+  line-height: 1.5;
+  transition: transform 200ms var(--ease-out-quint),
+              border-color 200ms ease,
+              background-color 200ms ease;
+}
+#decision-influence:not([hidden]) {
+  display: block;
+  animation: modal-item-rise-subtle 300ms var(--ease-out-quint) both;
+}
+#decision-influence:hover {
+  border-color: #a4c2e8;
+  background: #ffffff;
+}
+
+/* Prévia da Decisão */
+.decision-preview {
+  margin: 10px 0 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px dashed #93b5de;
+  background: #f0f6fd;
+  transition: transform 200ms var(--ease-out-quint),
+              border-color 200ms ease,
+              background-color 200ms ease;
+}
+.decision-preview:not([hidden]) {
+  display: block;
+  animation: modal-item-rise-subtle 300ms var(--ease-out-quint) both;
+}
+
 /* Resultado da Aprendizagem */
 .learning-result {
   margin-top: 12px;
@@ -1899,6 +2055,15 @@ body::after {
     transform: translateY(0) scale(1);
   }
 }
+.learning-result:not([hidden]) .decision-facts > div {
+  animation: fact-card-cascade 300ms var(--ease-out-quint) both;
+}
+.learning-result:not([hidden]) .decision-facts > div:nth-child(1) { animation-delay: 30ms; }
+.learning-result:not([hidden]) .decision-facts > div:nth-child(2) { animation-delay: 60ms; }
+.learning-result:not([hidden]) .decision-facts > div:nth-child(3) { animation-delay: 90ms; }
+.learning-result:not([hidden]) .decision-facts > div:nth-child(4) { animation-delay: 120ms; }
+.learning-result:not([hidden]) .decision-facts > div:nth-child(5) { animation-delay: 150ms; }
+.learning-result:not([hidden]) .decision-facts > div:nth-child(6) { animation-delay: 180ms; }
 
 /* Botões de Feedback */
 .feedback-actions {
@@ -1946,6 +2111,44 @@ body::after {
   transition: width 600ms var(--ease-out-quint);
 }
 
+.renderer-data-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+  gap: 8px;
+  margin: 0;
+}
+.renderer-data-grid > div {
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+  transition: transform 200ms var(--ease-out-quint),
+              border-color 200ms ease,
+              box-shadow 200ms ease,
+              background-color 200ms ease;
+}
+.renderer-data-grid > div:hover {
+  transform: translateY(-2px);
+  border-color: #a4c2e8;
+  background: #ffffff;
+  box-shadow: 0 6px 16px rgba(52, 95, 150, 0.08);
+}
+.renderer-data-grid dt {
+  color: var(--ink-soft);
+  font-size: 10px;
+  line-height: 1.5;
+  letter-spacing: .04em;
+}
+.renderer-data-grid dd {
+  margin: 7px 0 0;
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.renderer-data-wide { grid-column: 1 / -1; }
 /* Suporte a Movimento Reduzido */
 @media (prefers-reduced-motion: reduce) {
   .panel,
@@ -1955,13 +2158,16 @@ body::after {
   .toggle-line,
   .preset-button,
   .decision-details,
-  .decision-details > summary,
-  .decision-details::details-content,
+  .decision-details-button,
+  .decision-details .reasoning-button,
+  #decision-summary-region,
   .decision-preview,
+  #decision-influence,
   .decision-idle-guide,
   .idle-step,
   .idle-step-num,
   .learning-result,
+  .learning-result .decision-facts > div,
   .feedback-button,
   .decision-action-chip,
   .decision-state,
@@ -1969,7 +2175,11 @@ body::after {
   .scene-temperature-badge,
   .scene-temp-value,
   .control-label output,
-  #decisao_acao {
+  #decisao_acao,
+  .reasoning-modal .evidence-list li,
+  .reasoning-modal .metrics-grid > div,
+  .renderer-data-grid > div,
+  .button-arrow {
     transition: none !important;
     animation: none !important;
     transform: none !important;

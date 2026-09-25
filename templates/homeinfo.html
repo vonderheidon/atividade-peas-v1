@@ -6,8 +6,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#eaf0f7">
   <title>PEAS / Quarto 3D — Observatório do agente</title>
-  <link rel="stylesheet" href="/static/simulador/styles.css">
-  <link rel="stylesheet" href="/static/simulador/dashboard.css?v=decision-cycle-12">
+  <link rel="stylesheet" href="/static/simulador/styles.css?v=scroll-lock-2">
+  <link rel="stylesheet" href="/static/simulador/dashboard.css?v=decision-cycle-21">
 </head>
 
 <body>
@@ -84,7 +84,7 @@
             </div>
             <button id="reset-simulador" class="preset-button" type="button" data-reset="true">
               <span class="preset-code" aria-hidden="true">R</span>
-              <span><strong>Resetar</strong><small>conforto e pausa</small></span>
+              <span><strong>Resetar</strong><small>limpa a sala salva</small></span>
             </button>
           </fieldset>
 
@@ -106,6 +106,7 @@
           <ul id="decisao_acoes" class="decision-actions" aria-label="Ações compatíveis no ciclo"></ul>
           <p id="decisao_motivo" class="decision-copy">O motivo curto da escolha aparecerá aqui quando o agente receber
             uma leitura confirmada.</p>
+          <p id="decision-influence" class="resource-note" hidden></p>
 
           <div id="decision-idle-guide" class="decision-idle-guide" aria-label="Instruções de início">
             <div class="idle-steps">
@@ -138,61 +139,13 @@
             <p id="decision-preview-action" class="preview-action"></p>
             <p id="decision-preview-copy" class="decision-copy"></p>
           </section>
-          <details id="decision-details" class="decision-details" hidden>
-            <summary>Ver detalhes da decisão</summary>
-            <dl class="decision-facts" aria-label="Estado essencial da decisão">
-              <div>
-                <dt>modo</dt>
-                <dd id="decisao_modo">—</dd>
-              </div>
-              <div>
-                <dt>objetivo</dt>
-                <dd id="decisao_objetivo">—</dd>
-              </div>
-              <div>
-                <dt>plano</dt>
-                <dd id="decisao_plano">—</dd>
-              </div>
-            </dl>
-
-            <section id="identity-region" class="decision-identity" aria-labelledby="identity-title">
-              <p class="kicker" id="identity-title">identidade contextual</p>
-              <dl class="decision-facts identity-facts">
-                <div>
-                  <dt>modo cognitivo</dt>
-                  <dd id="identidade_modo">—</dd>
-                </div>
-                <div>
-                  <dt>faixa horária</dt>
-                  <dd id="identidade_faixa_horario">—</dd>
-                </div>
-                <div>
-                  <dt>dormir</dt>
-                  <dd id="identidade_dormir">—</dd>
-                </div>
-                <div>
-                  <dt>faixa térmica</dt>
-                  <dd id="identidade_faixa_temperatura">—</dd>
-                </div>
-                <div>
-                  <dt>luminosidade</dt>
-                  <dd id="identidade_luminosidade">—</dd>
-                </div>
-                <div>
-                  <dt>presença interna</dt>
-                  <dd id="identidade_presenca_interna">—</dd>
-                </div>
-              </dl>
-            </section>
-
-            <p id="decision-influence" class="resource-note">Aguardando uma decisão cognitiva confirmada.</p>
-
-            <button id="open-reasoning" class="reasoning-button" type="button" data-dialog="raciocinio"
-              aria-controls="reasoning-modal">
-              <span>Ver raciocínio completo</span>
+          <div id="decision-details" class="decision-details" hidden>
+            <button id="open-reasoning" class="decision-details-button reasoning-button" type="button"
+              data-dialog="raciocinio" aria-controls="reasoning-modal">
+              <span>Ver detalhes da decisão</span>
               <span class="button-arrow" aria-hidden="true">↗</span>
             </button>
-          </details>
+          </div>
         </div>
 
         <section id="feedback-region" class="feedback-zone" aria-labelledby="feedback-title">
@@ -219,10 +172,6 @@
               <div>
                 <dt>ação avaliada</dt>
                 <dd id="learning-result-action">—</dd>
-              </div>
-              <div>
-                <dt>identidade</dt>
-                <dd id="learning-result-identity">—</dd>
               </div>
               <div>
                 <dt>saldo anterior</dt>
@@ -469,8 +418,7 @@
           <div>
             <p class="kicker">Rastro da decisão / detalhe</p>
             <h2 id="reasoning-title">Como a escolha foi construída</h2>
-            <p id="reasoning-description" class="modal-description">Evidências, alternativas e métricas recebidas do
-              agente para este ciclo.</p>
+            <p id="reasoning-description" class="modal-description">Veja o que o agente considerou e como o quarto mudou neste ciclo.</p>
           </div>
           <button id="close-reasoning" class="modal-close" type="button" data-dialog="fechar"
             aria-label="Fechar raciocínio">
@@ -479,6 +427,31 @@
         </header>
 
         <div class="modal-body">
+          <section id="decision-summary-region" class="reasoning-section decision-modal-summary"
+            aria-labelledby="decision-summary-title">
+            <header class="section-heading">
+              <span class="section-number" aria-hidden="true">00</span>
+              <div>
+                <p class="kicker">visão geral</p>
+                <h3 id="decision-summary-title">Estado essencial da decisão</h3>
+              </div>
+            </header>
+            <dl class="decision-facts" aria-label="Estado essencial da decisão">
+              <div>
+                <dt>modo</dt>
+                <dd id="decisao_modo">—</dd>
+              </div>
+              <div>
+                <dt>objetivo</dt>
+                <dd id="decisao_objetivo">—</dd>
+              </div>
+              <div>
+                <dt>plano</dt>
+                <dd id="decisao_plano">—</dd>
+              </div>
+            </dl>
+          </section>
+
           <section id="evidence-region" class="reasoning-section" aria-labelledby="evidence-title">
             <header class="section-heading">
               <span class="section-number" aria-hidden="true">01</span>
@@ -494,13 +467,13 @@
                 </div>
               </li>
               <li><span class="evidence-index">B</span>
-                <div><strong>Contexto</strong>
-                  <p id="evidence_contexto" data-evidence="contexto">Aguardando contexto do ciclo.</p>
+                <div><strong>Condições consideradas</strong>
+                  <p id="evidence_contexto" data-evidence="contexto">Aguardando a próxima decisão.</p>
                 </div>
               </li>
               <li><span class="evidence-index">C</span>
-                <div><strong>Correções permitidas</strong>
-                  <p id="evidence_restricoes" data-evidence="restricoes">Aguardando correções permitidas confirmadas.
+                <div><strong>Ajustes manuais compatíveis</strong>
+                  <p id="evidence_restricoes" data-evidence="restricoes">Aguardando a próxima decisão.
                   </p>
                 </div>
               </li>
@@ -520,18 +493,19 @@
                 </div>
               </div>
             </header>
-            <div class="table-frame">
+            <p class="table-scroll-hint">Deslize a tabela para o lado para ver todas as colunas.</p>
+            <div class="table-frame" tabindex="0" aria-label="Alternativas consideradas; role para o lado para ver todas as colunas">
               <table class="alternatives-table">
                 <caption class="sr-only">Alternativas, pontuação e influência da decisão</caption>
                 <thead>
                   <tr>
                     <th scope="col">Ação</th>
                     <th scope="col">Elegibilidade</th>
-                    <th scope="col">Base</th>
-                    <th scope="col">Preferência</th>
-                    <th scope="col">Total</th>
-                    <th scope="col">Influência</th>
-                    <th scope="col">Utilidade</th>
+                    <th scope="col">Conforto</th>
+                    <th scope="col">Custo por ciclo</th>
+                    <th scope="col">Temperatura em 3 ciclos</th>
+                    <th scope="col">Preferência aplicada</th>
+                    <th scope="col">Pontuação final</th>
                   </tr>
                 </thead>
                 <tbody id="alternatives-list">
@@ -547,8 +521,8 @@
             <header class="section-heading">
               <span class="section-number" aria-hidden="true">03</span>
               <div>
-                <p class="kicker">métricas</p>
-                <h3 id="metrics-title">O que pesou na escolha</h3>
+                <p class="kicker">decisão</p>
+                <h3 id="metrics-title">Métricas da alternativa escolhida</h3>
               </div>
             </header>
             <dl id="metrics-list" class="metrics-grid">
@@ -563,30 +537,13 @@
                     style="width: 0%"></i></span>
               </div>
               <div>
-                <dt>Preferência</dt>
-                <dd id="metrica_preferencia">—</dd><span class="meter"><i id="metrica_preferencia_bar"
-                    style="width: 0%"></i></span>
-              </div>
-              <div>
-                <dt>Utilidade</dt>
+                <dt>Pontuação final</dt>
                 <dd id="metrica_utilidade">—</dd><span class="meter meter-accent"><i id="metrica_utilidade_bar"
                     style="width: 0%"></i></span>
               </div>
               <div>
-                <dt>Pontuação-base</dt>
-                <dd id="metrica_pontuacao_base">—</dd>
-              </div>
-              <div>
-                <dt>Preferência contextual</dt>
-                <dd id="metrica_preferencia_contextual">—</dd>
-              </div>
-              <div>
-                <dt>Pontuação total</dt>
-                <dd id="metrica_pontuacao_total">—</dd>
-              </div>
-              <div>
-                <dt>Influenciada</dt>
-                <dd id="metrica_influenciada">—</dd>
+                <dt>Energia por ciclo</dt>
+                <dd id="metrica_custo">—</dd>
               </div>
             </dl>
           </section>
@@ -619,6 +576,85 @@
               </table>
             </div>
           </section>
+
+          <section id="cycle-metrics-region" class="reasoning-section" aria-labelledby="cycle-metrics-title" hidden>
+            <header class="section-heading">
+              <span class="section-number" aria-hidden="true">05</span>
+              <div>
+                <p class="kicker">resultado do ciclo</p>
+                <h3 id="cycle-metrics-title">Métricas, segurança e efeitos</h3>
+              </div>
+            </header>
+            <dl class="renderer-data-grid">
+              <div><dt>Ciclo</dt><dd id="cycle_metric_number">—</dd></div>
+              <div><dt>Temperatura projetada</dt><dd id="cycle_metric_temperature">—</dd></div>
+              <div><dt>Conforto</dt><dd id="cycle_metric_comfort">—</dd></div>
+              <div><dt>Custo energético</dt><dd id="cycle_metric_cost">—</dd></div>
+              <div><dt>Economia</dt><dd id="cycle_metric_economy">—</dd></div>
+              <div><dt>Ajuste de preferência</dt><dd id="cycle_metric_preference">—</dd></div>
+              <div><dt>Estratégia</dt><dd id="cycle_metric_strategy">—</dd></div>
+              <div><dt>Segurança</dt><dd id="cycle_metric_security">—</dd></div>
+              <div><dt>Prevenções / bloqueios</dt><dd id="cycle_metric_blocks">—</dd></div>
+              <div><dt>Incidentes</dt><dd id="cycle_metric_incidents">—</dd></div>
+              <div><dt>Feedback</dt><dd id="cycle_metric_feedback">—</dd></div>
+            </dl>
+          </section>
+
+          <section id="decision-preference-region" class="reasoning-section" aria-labelledby="decision-preference-title" hidden>
+            <header class="section-heading">
+              <span class="section-number" aria-hidden="true">06</span>
+              <div>
+                <p class="kicker">preferência aplicável</p>
+                <h3 id="decision-preference-title">Preferência aprendida para esta escolha</h3>
+              </div>
+            </header>
+            <p class="modal-description">O agente usa essa preferência quando a mesma ação está disponível para este objetivo.</p>
+            <dl class="renderer-data-grid">
+              <div><dt>Objetivo</dt><dd id="decision-preference-objective">—</dd></div>
+              <div><dt>Estratégia</dt><dd id="decision-preference-strategy">—</dd></div>
+              <div><dt>Preferência</dt><dd id="decision-preference-value">—</dd></div>
+            </dl>
+          </section>
+
+          <section id="run-summary-region" class="reasoning-section" aria-labelledby="run-summary-title" hidden>
+            <header class="section-heading">
+              <span class="section-number" aria-hidden="true">07</span>
+              <div>
+                <p class="kicker">execução</p>
+                <h3 id="run-summary-title">Resumo da simulação</h3>
+              </div>
+            </header>
+            <dl class="renderer-data-grid">
+              <div><dt>Ciclos</dt><dd id="run_summary_cycles">—</dd></div>
+              <div><dt>Custo energético total</dt><dd id="run_summary_energy_total">—</dd></div>
+              <div><dt>Custo energético médio</dt><dd id="run_summary_energy_average">—</dd></div>
+              <div><dt>Conforto médio</dt><dd id="run_summary_comfort_average">—</dd></div>
+              <div><dt>Ciclos seguros</dt><dd id="run_summary_safe_cycles">—</dd></div>
+              <div><dt>Prevenções</dt><dd id="run_summary_preventions">—</dd></div>
+              <div><dt>Incidentes</dt><dd id="run_summary_incidents">—</dd></div>
+              <div><dt>Aceitações</dt><dd id="run_summary_acceptances">—</dd></div>
+              <div><dt>Correções</dt><dd id="run_summary_corrections">—</dd></div>
+              <div><dt>Satisfação observada</dt><dd id="run_summary_satisfaction">—</dd></div>
+            </dl>
+          </section>
+
+          <section id="episode-region" class="reasoning-section" aria-labelledby="episode-title" hidden>
+            <header class="section-heading">
+              <span class="section-number" aria-hidden="true">08</span>
+              <div>
+                <p class="kicker">episódio</p>
+                <h3 id="episode-title">Trajetória da estratégia</h3>
+              </div>
+            </header>
+            <dl class="renderer-data-grid">
+              <div><dt>Estado</dt><dd id="episode-status">—</dd></div>
+              <div><dt>Objetivo</dt><dd id="episode-objective">—</dd></div>
+              <div><dt>Estratégia sugerida</dt><dd id="episode-strategy">—</dd></div>
+              <div><dt>Estratégia corrigida</dt><dd id="episode-corrected-strategy">—</dd></div>
+              <div class="renderer-data-wide"><dt>Comandos</dt><dd id="episode-commands">—</dd></div>
+            </dl>
+          </section>
+
         </div>
       </div>
     </dialog>
@@ -773,7 +809,7 @@
             <p class="kicker">Guia do agente / cálculo de decisão</p>
             <h2 id="utility-formula-title">Fórmula da utilidade</h2>
             <p id="utility-formula-description" class="modal-description">
-              Critério matemático usado pelo agente cognitivo para ranquear alternativas elegíveis e selecionar a ação ótima.
+              O agente compara conforto, gasto de energia e preferências aprendidas entre as opções que podem ser executadas.
             </p>
           </div>
           <button id="close-utility-formula-help" class="modal-close" type="button"
@@ -797,11 +833,13 @@
               <div class="formula-equation-code">
                 <span class="eq-term eq-result">U(a)</span>
                 <span class="eq-op">=</span>
-                <span class="eq-term eq-comfort">0,6 × conforto(a)</span>
+                <span class="eq-term eq-comfort">0,6 × conforto avaliado(a)</span>
                 <span class="eq-op">+</span>
                 <span class="eq-term eq-economy">0,4 × economia(a)</span>
                 <span class="eq-op">+</span>
-                <span class="eq-term eq-preference">preferência(contexto, a)</span>
+                <span class="eq-term eq-preference">ajuste da preferência aprendida(a)</span>
+                <span class="eq-op">−</span>
+                <span class="eq-term">penalidade por troca(a)</span>
               </div>
             </div>
 
@@ -809,20 +847,22 @@
               <h4 class="formula-group-title">Propriedades e restrições</h4>
               <ul class="formula-rules-list">
                 <li><span class="formula-bullet" aria-hidden="true"></span><span>Conforto e economia variam de <code class="formula-pill">0</code> a <code class="formula-pill">1</code>.</span></li>
-                <li><span class="formula-bullet" aria-hidden="true"></span><span>A preferência varia de <code class="formula-pill">-3</code> a <code class="formula-pill">+3</code>.</span></li>
-                <li><span class="formula-bullet" aria-hidden="true"></span><span>A preferência é adicionada diretamente; não existe multiplicador <code class="formula-pill">0,2</code>.</span></li>
+                <li><span class="formula-bullet" aria-hidden="true"></span><span>A preferência aprendida vai de <code class="formula-pill">-3</code> a <code class="formula-pill">+3</code>. Dividida por <code class="formula-pill">10</code>, gera um ajuste de <code class="formula-pill">-0,3</code> a <code class="formula-pill">+0,3</code>.</span></li>
+                <li><span class="formula-bullet" aria-hidden="true"></span><span>Para ações térmicas, o conforto é a média prevista de três ciclos, com o mesmo estado dos dispositivos. A troca de cada dispositivo térmico custa <code class="formula-pill">0,04</code> ponto. Outros objetivos usam a pontuação de um ciclo, sem penalidade de troca.</span></li>
+                <li><span class="formula-bullet" aria-hidden="true"></span><span>O ar liga acima de <code class="formula-pill">26 °C</code> e desliga ao atingir <code class="formula-pill">23 °C</code>. Uma correção aprendida pode aceitar aquecimento temporário até a previsão de três ciclos atingir <code class="formula-pill">32 °C</code>.</span></li>
+                <li><span class="formula-bullet" aria-hidden="true"></span><span>Rejeitar um tipo de resfriamento também afeta o outro tipo de resfriamento ativo. A estratégia “Manter” conserva sua preferência própria.</span></li>
                 <li><span class="formula-bullet" aria-hidden="true"></span><span>Alternativas inelegíveis não participam da seleção.</span></li>
                 <li><span class="formula-bullet" aria-hidden="true"></span><span>A pontuação é arredondada para duas casas decimais.</span></li>
               </ul>
             </div>
 
             <div class="formula-tiebreakers-group">
-              <h4 class="formula-group-title">Critérios de desempate (diferença ≤ 0,01)</h4>
+              <h4 class="formula-group-title">Critérios de desempate</h4>
+              <p class="formula-tiebreakers-intro">Vence a maior pontuação final. Se houver empate, o agente compara:</p>
               <ol class="formula-tiebreakers-list">
-                <li><span class="tiebreaker-rank" aria-hidden="true">1</span><span>Manter o estado.</span></li>
-                <li><span class="tiebreaker-rank" aria-hidden="true">2</span><span>Menor custo fixo da ação.</span></li>
-                <li><span class="tiebreaker-rank" aria-hidden="true">3</span><span>Menor número de mudanças físicas pendentes.</span></li>
-                <li><span class="tiebreaker-rank" aria-hidden="true">4</span><span>Ordem canônica das ações.</span></li>
+                <li><span class="tiebreaker-rank" aria-hidden="true">1</span><span>Maior conforto projetado.</span></li>
+                <li><span class="tiebreaker-rank" aria-hidden="true">2</span><span>Menor gasto de energia.</span></li>
+                <li><span class="tiebreaker-rank" aria-hidden="true">3</span><span>Ordem fixa das estratégias.</span></li>
               </ol>
             </div>
           </section>
@@ -841,8 +881,10 @@
   <script src="/static/simulador/vendor/three-0.160.1.min.js" defer></script>
   <script src="/static/simulador/vendor/GLTFLoader.min.js" defer></script>
   <script src="/static/simulador/room-scene.js" defer></script>
-  <script src="/static/simulador/simulator-ui.js?v=decision-cycle-1" defer></script>
-  <script src="/static/simulador/main.js" defer></script>
+  <script src="/static/simulador/simulator-ui.js?v=decision-cycle-5" defer></script>
+  <script src="/static/simulador/room-store.js" defer></script>
+  <script src="/static/simulador/room-coordinator.js" defer></script>
+  <script src="/static/simulador/main.js?v=decision-cycle-4" defer></script>
 </body>
 
 </html>

@@ -27,13 +27,36 @@ def get_status():
 
 @app.route('/ajustar', methods=['GET'])
 def adjust_legacy_environment():
-    response = services.ajustar(
-        request.args.get('temperatura'),
-        request.args.get('umidade'),
-        request.args.get('dormir'),
-        request.args.get('aberta'),
+    raw_input = request.args.to_dict()
+    try:
+        body = services.ajustar(
+            request.args.get('temperatura'),
+            request.args.get('umidade'),
+            request.args.get('dormir'),
+            request.args.get('aberta'),
+        )
+    except Exception as error:
+        app.logger.error(
+            "Unexpected legacy environment adapter failure",
+            extra={
+                "path": request.path,
+                "method": request.method,
+                "error_type": type(error).__name__,
+            },
+        )
+        body = services.legacy_internal_error_response(request.path, raw_input)
+    envelope = body.get('envelope')
+    status_code = (
+        envelope.get('http_status', 200)
+        if isinstance(envelope, dict)
+        else 200
     )
-    return jsonify(response), 200
+    if type(status_code) is not int or status_code not in (200, 400, 409, 422, 500):
+        status_code = 500
+    response = jsonify(body)
+    response.status_code = status_code
+    response.headers['Deprecation'] = 'true'
+    return response, status_code
 
 
 if __name__ == '__main__':

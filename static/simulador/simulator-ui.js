@@ -108,8 +108,21 @@
     fechar: 'Fechar a janela',
     ventilar: 'Ventilar o quarto',
     resfriar: 'Resfriar o quarto',
+    ventilacao_natural: 'Ventilação natural',
+    ventilacao_assistida: 'Ventilação com ventilador',
+    circulacao_interna: 'Circulação interna',
+    resfriamento: 'Resfriamento com ar-condicionado',
+    resfriamento_assistido: 'Resfriamento com ar e ventilador',
     umidificar: 'Ajustar umidade',
     iluminar: 'Ajustar iluminação',
+  });
+
+  const OBJECTIVE_LABELS = Object.freeze({
+    termico: 'temperatura',
+    umidade: 'umidade',
+    iluminacao: 'iluminação',
+    manutencao: 'manutenção do conforto',
+    seguranca: 'segurança',
   });
 
   /** @type {Readonly<Record<string, string>>} */
@@ -203,6 +216,12 @@
   }
 
   /** @param {unknown} value @returns {string} */
+  function objectiveLabel(value) {
+    return typeof value === 'string' && Object.prototype.hasOwnProperty.call(OBJECTIVE_LABELS, value)
+      ? OBJECTIVE_LABELS[value] : 'ambiente';
+  }
+
+  /** @param {unknown} value @returns {string} */
   function deviceLabel(value) {
     if (typeof value === 'string' && Object.prototype.hasOwnProperty.call(DEVICE_LABELS, value)) {
       return DEVICE_LABELS[value];
@@ -246,6 +265,47 @@
   function responseDecision(value) {
     const response = asRecord(value);
     return response ? asRecord(response.decisao) : null;
+  }
+
+  /** @param {unknown} value @returns {JsonRecord | null} */
+  function responseSnapshot(value) {
+    const response = asRecord(value);
+    if (!response) return null;
+    const supplied = asRecord(response.room_snapshot) ?? asRecord(response.snapshot);
+    if (supplied && asRecord(supplied.computation)) return supplied;
+    return asRecord(response.computation) && Array.isArray(response.trace) ? response : null;
+  }
+
+  /** @param {unknown} value @param {JsonRecord | null} snapshot @returns {{ identityId: string, generation: number, mismatch: boolean } | null} */
+  function responseIdentity(value, snapshot) {
+    const response = asRecord(value);
+    const responseHasIdentity = typeof response?.identity_id === 'string'
+      && typeof response.identity_generation === 'number'
+      && Number.isSafeInteger(response.identity_generation);
+    const snapshotHasIdentity = typeof snapshot?.identity_id === 'string'
+      && typeof snapshot.identity_generation === 'number'
+      && Number.isSafeInteger(snapshot.identity_generation);
+    if (responseHasIdentity) {
+      return {
+        identityId: /** @type {string} */ (response.identity_id),
+        generation: /** @type {number} */ (response.identity_generation),
+        mismatch: Boolean(snapshotHasIdentity
+          && (response.identity_id !== snapshot?.identity_id
+            || response.identity_generation !== snapshot?.identity_generation)),
+      };
+    }
+    return snapshotHasIdentity
+      ? { identityId: /** @type {string} */ (snapshot.identity_id), generation: /** @type {number} */ (snapshot.identity_generation), mismatch: false }
+      : null;
+  }
+
+  /** @param {unknown} value @param {JsonRecord | null} snapshot @returns {number | null} */
+  function responseRevision(value, snapshot) {
+    const response = asRecord(value);
+    const revision = snapshot?.revision ?? response?.revision;
+    return typeof revision === 'number' && Number.isSafeInteger(revision) && revision >= 0
+      ? revision
+      : null;
   }
 
   /** @param {unknown} value @returns {JsonRecord[]} */
@@ -298,13 +358,25 @@
   /** @param {JsonRecord | null} decision @returns {string[]} */
   function decisionActions(decision) {
     if (!decision) return [];
+    const strategyId = decisionStrategyId(decision);
+    const primaryAction = strategyId ?? decision.acao;
     const actions = Array.isArray(decision.acoes)
       ? decision.acoes.filter((value) => typeof value === 'string' && value.trim())
       : [];
-    if (typeof decision.acao === 'string' && decision.acao.trim() && !actions.includes(decision.acao)) {
-      actions.unshift(decision.acao);
+    if (strategyId && typeof decision.acao === 'string' && decision.acao.trim()) {
+      for (let index = 0; index < actions.length; index += 1) {
+        if (actions[index] === decision.acao) actions[index] = strategyId;
+      }
+    }
+    if (typeof primaryAction === 'string' && primaryAction.trim() && !actions.includes(primaryAction)) {
+      actions.unshift(primaryAction);
     }
     return actions;
+  }
+
+  /** @param {JsonRecord | null} decision @returns {unknown} */
+  function decisionPrimaryAction(decision) {
+    return decisionStrategyId(decision) ?? decision?.acao;
   }
 
   /** @param {Document} documentRef @param {string} message */
@@ -495,6 +567,18 @@
     }
   }
 
+  /** @param {Document} documentRef @param {UIElement} input */
+  function previewEnvironmentRange(documentRef, input) {
+    const value = Number(input.value);
+    if (input.dataset.environment === 'hora') {
+      setText(documentRef, 'hora_valor', formatHour(value));
+    } else if (input.dataset.environment === 'temperatura_externa') {
+      setText(documentRef, 'temperatura_externa_valor', `${formatDecimal(value)} °C`);
+    } else if (input.dataset.environment === 'umidade') {
+      setText(documentRef, 'umidade_valor', `${Math.round(value)}%`);
+    }
+  }
+
   /** @param {Document} documentRef @param {JsonRecord | null} state */
   function renderConfirmedDevices(documentRef, state) {
     if (!state) return;
@@ -574,10 +658,33 @@
   /** @param {JsonRecord | null} decision @returns {JsonRecord | null} */
   function selectedAlternative(decision) {
     const alternatives = decisionAlternatives(decision);
-    const selectedAction = decision?.acao;
-    return alternatives.find((alternative) => alternative.acao === selectedAction)
-      ?? alternatives[0]
-      ?? null;
+    const selected = alternatives.find((alternative) => alternativeMatchesDecision(decision, alternative));
+    if (selected) return selected;
+    return decisionStrategyId(decision) === null ? alternatives[0] ?? null : null;
+  }
+
+  /** @param {JsonRecord | null} decision @returns {JsonRecord[] | null} */
+  function decisionCorrections(decision) {
+    if (Array.isArray(decision?.correcoes_permitidas)) {
+      return recordList(decision.correcoes_permitidas);
+    }
+    const selected = selectedAlternative(decision);
+    return Array.isArray(selected?.correcoes_permitidas)
+      ? recordList(selected.correcoes_permitidas)
+      : null;
+  }
+
+  /** @param {JsonRecord | null} decision @returns {string | null} */
+  function decisionStrategyId(decision) {
+    const strategyId = decision?.strategy_id;
+    return typeof strategyId === 'string' && strategyId.trim() ? strategyId : null;
+  }
+
+  /** @param {JsonRecord | null} decision @param {JsonRecord} alternative @returns {boolean} */
+  function alternativeMatchesDecision(decision, alternative) {
+    const strategyId = decisionStrategyId(decision);
+    if (strategyId !== null) return alternative.strategy_id === strategyId;
+    return typeof decision?.acao === 'string' && alternative.acao === decision.acao;
   }
 
   /** @param {unknown} value @returns {string} */
@@ -586,23 +693,23 @@
     return value > 0 ? `+${value}` : String(value);
   }
 
+  /** @param {unknown} value @returns {string} */
+  function signedMetric(value) {
+    if (typeof value !== 'number' || !Number.isFinite(value)) return '—';
+    const formatted = formatMetric(value);
+    return value > 0 ? `+${formatted}` : formatted;
+  }
+
+  /** @param {unknown} value @param {string} unit @param {number} [decimalPlaces] @returns {string} */
+  function metricWithUnit(value, unit, decimalPlaces = 2) {
+    if (typeof value !== 'number' || !Number.isFinite(value)) return '—';
+    const formatted = value.toFixed(decimalPlaces).replace('.', ',');
+    return formatted === '—' ? formatted : `${formatted} ${unit}`;
+  }
+
   /** @param {unknown} value @param {string} positive @param {string} negative @returns {string} */
   function binaryLabel(value, positive, negative) {
     return binaryValue(value) ? positive : negative;
-  }
-
-  /** @param {Document} documentRef @param {JsonRecord | null} decision */
-  function renderIdentity(documentRef, decision) {
-    const identity = decision ? asRecord(decision.identidade) : null;
-    setText(documentRef, 'identidade_preset', typeof identity?.preset === 'string' ? identity.preset : '—');
-    setText(documentRef, 'identidade_modo', typeof identity?.modo === 'string' ? identity.modo : '—');
-    setText(documentRef, 'identidade_faixa_horario', typeof identity?.faixa_horario === 'string' ? identity.faixa_horario : '—');
-    setText(documentRef, 'identidade_dormir', identity && hasOwn(identity, 'dormir') ? binaryLabel(identity.dormir, 'ativo', 'inativo') : '—');
-    setText(documentRef, 'identidade_faixa_temperatura', typeof identity?.faixa_temperatura === 'string' ? identity.faixa_temperatura : '—');
-    setText(documentRef, 'identidade_luminosidade', typeof identity?.luminosidade === 'string' ? identity.luminosidade : '—');
-    setText(documentRef, 'identidade_presenca_interna', identity && hasOwn(identity, 'presenca_interna')
-      ? binaryLabel(identity.presenca_interna, 'detectada', 'ausente')
-      : '—');
   }
 
   /** @param {unknown} value @returns {string} */
@@ -612,12 +719,44 @@
     return `${percentage}%`;
   }
 
+  /** @param {JsonRecord} context @returns {string} */
+  function learningContextText(context) {
+    const parts = [];
+    if (typeof context.hora === 'number') parts.push(`hora ${formatHour(context.hora)}`);
+    if (typeof context.faixa_horario === 'string') parts.push(`período ${context.faixa_horario}`);
+    if (typeof context.preset === 'string') parts.push(`perfil selecionado ${context.preset}`);
+    if (typeof context.faixa_temperatura === 'string') {
+      parts.push(`faixa térmica ${context.faixa_temperatura}`);
+    }
+    /** @type {Readonly<Record<string, string>>} */
+    const luminosityLabels = { escuro: 'escura', adequado: 'adequada', claro: 'clara' };
+    if (typeof context.luminosidade === 'string') {
+      const luminosity = luminosityLabels[context.luminosidade] ?? context.luminosidade;
+      parts.push(`luminosidade ${luminosity}`);
+    }
+    parts.push(`modo dormir ${binaryValue(context.dormir) ? 'ativo' : 'inativo'}`);
+    parts.push(`presença interna ${binaryValue(context.presenca_interna) ? 'detectada' : 'ausente'}`);
+    return `${parts.join('; ')}. A preferência aprendida é registrada por objetivo e estratégia.`;
+  }
+
+  /** @param {JsonRecord} correction @returns {string} */
+  function manualCorrectionLabel(correction) {
+    const device = correction.dispositivo;
+    const enabled = binaryValue(correction.comando);
+    if (device === 'janela') return enabled ? 'Abrir a janela' : 'Fechar a janela';
+    if (device === 'ar') return enabled ? 'Ligar o ar-condicionado' : 'Desligar o ar-condicionado';
+    if (device === 'ventilador') return enabled ? 'Ligar o ventilador' : 'Desligar o ventilador';
+    if (device === 'umidificador') return enabled ? 'Ligar o umidificador' : 'Desligar o umidificador';
+    if (device === 'lampada') return enabled ? 'Acender a lâmpada' : 'Apagar a lâmpada';
+    return `${deviceLabel(device)}: ${commandLabel(device, correction.comando)}`;
+  }
+
   /** @param {Document} documentRef @param {JsonRecord | null} state @param {JsonRecord | null} decision @param {UIState} uiState */
   function renderEvidence(documentRef, state, decision, uiState) {
     if (!state) {
       setText(documentRef, 'evidence_ambiente', 'Aguardando leitura confirmada do ambiente.');
       setText(documentRef, 'evidence_contexto', 'Aguardando contexto confirmado do ciclo.');
-      setText(documentRef, 'evidence_restricoes', 'Aguardando correções permitidas devolvidas pelo núcleo.');
+      setText(documentRef, 'evidence_restricoes', 'As restrições aparecerão após um ciclo.');
       return;
     }
     const temperature = `${formatDecimal(state.temperatura_interna)} °C internos / ${formatDecimal(state.temperatura_externa)} °C externos`;
@@ -625,17 +764,22 @@
     const luminosity = typeof state.luminosidade === 'string' ? state.luminosidade : 'luminosidade indeterminada';
     setText(documentRef, 'evidence_ambiente', `${temperature}; ${humidity}; luminosidade ${luminosity}.`);
     if (!decision) {
-      setText(documentRef, 'evidence_contexto', `Estado de interface: ${stateLabel(uiState)}.`);
+      setText(documentRef, 'evidence_contexto', 'Aguardando o próximo ciclo.');
       setText(documentRef, 'evidence_restricoes', 'Nenhuma decisão foi devolvida para este estado.');
       return;
     }
     const context = asRecord(decision.contexto);
     const contextText = context
-      ? `${formatHour(context.hora)}; dormir ${binaryValue(context.dormir) ? 'ativo' : 'inativo'}; presença interna ${binaryValue(context.presenca_interna) ? 'detectada' : 'ausente'}.`
-      : 'Contexto não informado na resposta.';
-    const restrictionText = typeof decision.correcoes_permitidas === 'object'
-      ? `${recordList(decision.correcoes_permitidas).length} correção(ões) devolvida(s).`
-      : 'Correções permitidas recebidas com a decisão.';
+      ? learningContextText(context)
+      : decision.modo === 'cognitivo'
+        ? 'O registro desta decisão não guardou as condições originais.'
+        : 'Esta decisão reativa não usa o contexto de aprendizagem cognitiva.';
+    const corrections = decisionCorrections(decision);
+    const restrictionText = corrections === null
+      ? 'O registro desta decisão não guardou a lista de correções.'
+      : corrections.length === 0
+        ? 'Nenhum ajuste manual pode ser associado a esta decisão.'
+        : `Mudanças que contam como correção: ${corrections.map(manualCorrectionLabel).join('; ')}. A preferência muda no próximo ciclo se o estado final corresponder a uma estratégia conhecida.`;
     setText(documentRef, 'evidence_contexto', contextText);
     setText(documentRef, 'evidence_restricoes', restrictionText);
   }
@@ -647,16 +791,17 @@
       setHTML(documentRef, 'alternatives-list', '<tr><td colspan="7" class="table-empty">As alternativas aparecerão após uma decisão recebida.</td></tr>');
       return;
     }
-    const selectedAction = decision?.acao;
     const rows = alternatives.map((alternative) => {
-      const selected = alternative.acao === selectedAction;
+      const selected = alternativeMatchesDecision(decision, alternative);
       const eligible = alternative.elegivel !== false;
       const eligibility = eligible ? (selected ? 'escolhida' : 'elegível') : 'bloqueada';
       const reason = typeof alternative.motivo_bloqueio === 'string' && alternative.motivo_bloqueio
         ? ` · ${alternative.motivo_bloqueio}`
         : '';
-      const influence = alternative.influenciada === true ? 'sim' : 'não';
-      return `<tr><td>${escapeHTML(actionLabel(alternative.acao))}</td><td>${escapeHTML(`${eligibility}${reason}`)}</td><td>${escapeHTML(formatMetric(alternative.pontuacao_base))}</td><td>${escapeHTML(signedValue(alternative.preferencia_contextual))}</td><td>${escapeHTML(formatMetric(alternative.pontuacao_total))}</td><td>${escapeHTML(influence)}</td><td>${escapeHTML(formatMetric(alternative.utilidade))}</td></tr>`;
+      const forecast = typeof alternative.temperatura_em_tres_horas === 'number' && Number.isFinite(alternative.temperatura_em_tres_horas)
+        ? `${formatDecimal(alternative.temperatura_em_tres_horas)} °C`
+        : '—';
+      return `<tr><td>${escapeHTML(actionLabel(alternative.strategy_id ?? alternative.acao))}</td><td>${escapeHTML(`${eligibility}${reason}`)}</td><td>${escapeHTML(formatMetric(alternative.conforto))}</td><td>${escapeHTML(formatMetric(alternative.custo))}</td><td>${escapeHTML(forecast)}</td><td>${escapeHTML(signedValue(alternative.preferencia_contextual))}</td><td>${escapeHTML(formatMetric(alternative.pontuacao_total))}</td></tr>`;
     }).join('');
     setHTML(documentRef, 'alternatives-list', rows);
   }
@@ -681,7 +826,6 @@
     const metrics = [
       ['metrica_conforto', 'metrica_conforto_bar', 'conforto'],
       ['metrica_economia', 'metrica_economia_bar', 'economia'],
-      ['metrica_preferencia', 'metrica_preferencia_bar', 'preferencia'],
       ['metrica_utilidade', 'metrica_utilidade_bar', 'utilidade'],
     ];
     for (const [valueId, barId, key] of metrics) {
@@ -689,25 +833,27 @@
       setText(documentRef, valueId, formatMetric(value));
       setMeterWidth(documentRef, barId, metricWidth(value));
     }
+    setText(documentRef, 'metrica_custo', formatMetric(selected?.custo));
     setText(documentRef, 'metrica_pontuacao_base', formatMetric(selected?.pontuacao_base));
     setText(documentRef, 'metrica_preferencia_contextual', signedValue(selected?.preferencia_contextual));
     setText(documentRef, 'metrica_pontuacao_total', formatMetric(selected?.pontuacao_total));
     setText(documentRef, 'metrica_influenciada', selected?.influenciada === true ? 'sim' : selected ? 'não' : '—');
-    setText(documentRef, 'decision-influence', selected?.influenciada === true
-      ? 'A preferência contextual foi considerada nesta escolha.'
-      : selected ? 'A escolha não recebeu influência contextual.' : 'Aguardando uma decisão cognitiva confirmada.');
+    const influence = typeof selected?.motivo_influencia === 'string'
+      ? selected.motivo_influencia
+      : selected && typeof selected.ajuste_familia_ar === 'number' && selected.ajuste_familia_ar < 0
+        ? 'A rejeição anterior ao ar-condicionado foi considerada também nesta estratégia.'
+        : selected && typeof selected.preferencia_contextual === 'number' && selected.preferencia_contextual !== 0
+          ? `Uma preferência aprendida por ${actionLabel(decisionPrimaryAction(decision))} foi considerada nesta escolha.`
+          : 'Nenhuma preferência aprendida influenciou esta escolha.';
+    setText(documentRef, 'decision-influence', influence);
   }
 
   /** @param {Document} documentRef @param {LearningResult | null} result */
   function renderLearningResult(documentRef, result) {
-    const identity = result ? asRecord(result.identidade) : null;
     setHidden(documentRef, 'learning-result-region', !result);
     if (!result) return;
     setText(documentRef, 'learning-result-type', typeof result.tipo === 'string' ? result.tipo : '—');
     setText(documentRef, 'learning-result-action', actionLabel(result.acao));
-    setText(documentRef, 'learning-result-identity', identity
-      ? `${identity.preset ?? '—'} · ${identity.modo ?? '—'} · ${identity.faixa_horario ?? '—'} · ${identity.faixa_temperatura ?? '—'} · ${identity.luminosidade ?? '—'} · presença ${binaryLabel(identity.presenca_interna, 'interna', 'ausente')}`
-      : 'Identidade não informada na resposta.');
     setText(documentRef, 'learning-result-previous', signedValue(result.preferencia_anterior));
     setText(documentRef, 'learning-result-delta', signedValue(result.delta));
     setText(documentRef, 'learning-result-current', signedValue(result.preferencia_atual));
@@ -730,7 +876,7 @@
     if (!decision) {
       setText(documentRef, 'feedback-copy', 'Aguardando uma decisão cognitiva confirmada.');
     } else if (cognitive) {
-      setText(documentRef, 'feedback-copy', `Feedback sobre: ${actionLabel(decision.acao)}. Registre uma avaliação depois de uma decisão cognitiva confirmada.`);
+      setText(documentRef, 'feedback-copy', `Feedback sobre: ${actionLabel(decisionPrimaryAction(decision))}. Registre uma avaliação depois de uma decisão cognitiva confirmada.`);
     } else {
       setText(documentRef, 'feedback-copy', 'Feedback disponível apenas para decisões cognitivas.');
     }
@@ -750,8 +896,8 @@
     setText(documentRef, 'estado_interface', label);
     setText(documentRef, 'decisao_estado', label);
     setText(documentRef, 'cycle_status', uiState === 'automatico' ? 'execução automática' : `simulação ${label}`);
-    setText(documentRef, 'renderer-status', state ? 'Cena preparada para receber o estado confirmado.' : 'Cena preparada para receber o estado confirmado.');
-    setText(documentRef, 'scene_status', state ? 'estado visual confirmado' : 'renderer aguardando');
+    setText(documentRef, 'renderer-status', state ? 'Quarto atualizado.' : 'Carregando o quarto.');
+    setText(documentRef, 'scene_status', state ? 'quarto atualizado' : 'carregando o quarto');
     setText(documentRef, 'environment-status', state
       ? (error ? 'Falha sem alterar o último estado confirmado.' : 'Campos ambientais confirmados pelo simulador.')
       : 'Aguardando estado confirmado.');
@@ -759,11 +905,30 @@
     renderCycleControls(documentRef, uiState, state);
   }
 
+  /** @param {unknown} value @param {string} positive @param {string} negative @returns {string} */
+  function binaryLabel(value, positive, negative) {
+    return value === 1 || value === '1' || value === true || value === 'true' ? positive : negative;
+  }
+
+  /** @param {Document} documentRef @param {JsonRecord | null} decision */
+  function renderIdentity(documentRef, decision) {
+    const identity = decision ? asRecord(decision.identidade) : null;
+    setText(documentRef, 'identidade_preset', typeof identity?.preset === 'string' ? identity.preset : '—');
+    setText(documentRef, 'identidade_modo', typeof identity?.modo === 'string' ? identity.modo : '—');
+    setText(documentRef, 'identidade_faixa_horario', typeof identity?.faixa_horario === 'string' ? identity.faixa_horario : '—');
+    setText(documentRef, 'identidade_dormir', identity && hasOwn(identity, 'dormir') ? binaryLabel(identity.dormir, 'ativo', 'inativo') : '—');
+    setText(documentRef, 'identidade_faixa_temperatura', typeof identity?.faixa_temperatura === 'string' ? identity.faixa_temperatura : '—');
+    setText(documentRef, 'identidade_luminosidade', typeof identity?.luminosidade === 'string' ? identity.luminosidade : '—');
+    setText(documentRef, 'identidade_presenca_interna', identity && hasOwn(identity, 'presenca_interna')
+      ? binaryLabel(identity.presenca_interna, 'detectada', 'ausente')
+      : '—');
+  }
+
   /** @param {Document} documentRef @param {JsonRecord | null} state @param {JsonRecord | null} decision */
   function renderDecision(documentRef, state, decision) {
     const hasDecision = Boolean(decision);
     const actions = decisionActions(decision);
-    setHidden(documentRef, 'decision-influence', !hasDecision);
+    setHidden(documentRef, 'decision-influence', !hasDecision || decision?.modo !== 'cognitivo');
     setHidden(documentRef, 'open-reasoning', !hasDecision);
     if (!decision) {
       setText(documentRef, 'decision-action-label', 'resultado do último ciclo');
@@ -772,25 +937,240 @@
       setText(documentRef, 'decisao_motivo', 'Clique em “Próximo ciclo” para avaliar o ambiente e executar a decisão.');
       setText(documentRef, 'decisao_modo', '—');
       setText(documentRef, 'decisao_objetivo', '—');
+      setText(documentRef, 'decisao_strategy_id', '—');
       setText(documentRef, 'decisao_plano', 'Nenhum plano recebido.');
-      setText(documentRef, 'decisao_indice', '—');
+      setText(documentRef, 'decision-card', '');
+      setText(documentRef, 'decision-modal', '');
       return;
     }
-    const decisionId = typeof decision.decisao_id === 'string' ? decision.decisao_id : '—';
     setText(documentRef, 'decision-action-label', 'resultado do último ciclo');
-    setText(documentRef, 'decisao_acao', actionLabel(decision.acao));
+    const primaryAction = decisionPrimaryAction(decision);
+    setText(documentRef, 'decisao_acao', actionLabel(primaryAction));
     setHTML(documentRef, 'decisao_acoes', actions.length > 1
-      ? actions.map((action) => `<li class="decision-action-chip${action === decision.acao ? ' is-primary' : ''}">${escapeHTML(actionLabel(action))}</li>`).join('')
+      ? actions.map((action) => `<li class="decision-action-chip${action === primaryAction ? ' is-primary' : ''}">${escapeHTML(actionLabel(action))}</li>`).join('')
       : '');
-    setText(documentRef, 'decisao_motivo', typeof decision.motivo === 'string' ? decision.motivo : 'Motivo recebido do núcleo decisório.');
+    const alternatives = decisionAlternatives(decision);
+    const outsideTooHot = alternatives.some((alternative) => typeof alternative.motivo_bloqueio === 'string'
+      && alternative.motivo_bloqueio.includes('ar externo está tão quente'));
+    const thermalStrategy = decisionStrategyId(decision);
+    const selected = selectedAlternative(decision);
+    const projected = selected?.temperatura_em_tres_horas;
+    const currentTemperature = state?.temperatura_interna;
+    const ventilationReason = typeof projected === 'number' && typeof currentTemperature === 'number'
+      ? projected > currentTemperature
+        ? `A ventilação mantém o ar desligado, mas a temperatura pode subir para ${formatMetric(projected)} °C em três ciclos. Custo: ${formatMetric(selected?.custo)} por ciclo.`
+        : `A ventilação mantém o ar desligado. Temperatura prevista em três ciclos: ${formatMetric(projected)} °C; custo: ${formatMetric(selected?.custo)} por ciclo.`
+      : 'O agente escolheu ventilação ao comparar conforto, energia e preferência aprendida.';
+    const shortReason = outsideTooHot && decision.objetivo === 'termico'
+      ? 'Lá fora está mais quente que no quarto. O agente mantém a janela fechada e usa o ar-condicionado para reduzir o calor.'
+      : decision.objetivo === 'termico' && (thermalStrategy === 'ventilacao_natural' || thermalStrategy === 'ventilacao_assistida')
+        ? ventilationReason
+        : decision.modo === 'cognitivo'
+          ? `O agente comparou as opções para ${objectiveLabel(decision.objetivo)} e escolheu a melhor combinação de conforto, energia e preferência aprendida.`
+          : typeof decision.motivo === 'string' ? decision.motivo : 'O agente avaliou o ambiente antes de agir.';
+    setText(documentRef, 'decisao_motivo', shortReason);
     setText(documentRef, 'decisao_modo', typeof decision.modo === 'string' ? decision.modo : '—');
-    setText(documentRef, 'decisao_objetivo', typeof decision.objetivo === 'string' ? decision.objetivo : '—');
+    setText(documentRef, 'decisao_objetivo', objectiveLabel(decision.objetivo));
+    setText(documentRef, 'decisao_strategy_id', typeof decision.strategy_id === 'string' ? decision.strategy_id : '—');
     setText(documentRef, 'decisao_plano', decisionPlan(decision, []).map(stepText).join(' · ') || 'Plano sem etapas.');
-    setText(documentRef, 'decisao_indice', decisionId === '—' ? '—' : decisionId.slice(0, 6));
+    const summary = `${actionLabel(primaryAction)} ${shortReason}`.trim();
+    setText(documentRef, 'decision-card', summary);
+    setText(documentRef, 'decision-modal', summary);
   }
 
-  /** @param {Document} documentRef @param {JsonRecord | null} state @param {JsonRecord | null} decision @param {JsonRecord[]} stages @param {UIState} uiState @param {unknown} error @param {JsonRecord | null} response @param {LearningResult | null} learningResult */
-  function renderAll(documentRef, state, decision, stages, uiState, error, response, learningResult) {
+  /** @param {JsonRecord | null} snapshot @returns {JsonRecord | null} */
+  function snapshotComputation(snapshot) {
+    return snapshot ? asRecord(snapshot.computation) : null;
+  }
+
+  /** @param {JsonRecord | null} snapshot @returns {JsonRecord | null} */
+  function canonicalDecision(snapshot) {
+    return asRecord(snapshotComputation(snapshot)?.decisao);
+  }
+
+  /** @param {JsonRecord | null} snapshot @returns {JsonRecord | null} */
+  function latestCycleMetric(snapshot) {
+    const computation = snapshotComputation(snapshot);
+    const values = recordList(snapshot?.cycle_metrics ?? computation?.metricas);
+    const runId = snapshot?.run_id;
+    return values.slice().reverse().find((metric) => (
+      typeof runId !== 'string' || metric.run_id === runId
+    )) ?? null;
+  }
+
+  /** @param {unknown} value @returns {string} */
+  function countText(value) {
+    return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0
+      ? String(value)
+      : '—';
+  }
+
+  /** @param {unknown} value @returns {string} */
+  function securityLabel(value) {
+    if (value === 'seguro') return 'Seguro';
+    if (value === 'prevencao') return 'Prevenção';
+    if (value === 'incidente') return 'Incidente';
+    return '—';
+  }
+
+  /** @param {unknown} value @returns {string[]} */
+  function stringList(value) {
+    return Array.isArray(value)
+      ? value.filter((entry) => typeof entry === 'string' && entry.trim())
+      : [];
+  }
+
+  /** @param {Document} documentRef @param {JsonRecord | null} snapshot @param {JsonRecord | null} decision */
+  function renderApplicablePreference(documentRef, snapshot, decision) {
+    const computation = snapshotComputation(snapshot);
+    const preferences = recordList(snapshot?.preferences ?? computation?.preferencias);
+    const canonical = canonicalDecision(snapshot);
+    const selected = selectedAlternative(decision);
+    const objective = typeof canonical?.objetivo === 'string'
+      ? canonical.objetivo
+      : typeof decision?.objetivo === 'string' ? decision.objetivo : '';
+    const strategyId = typeof canonical?.strategy_id === 'string'
+      ? canonical.strategy_id
+      : typeof decision?.strategy_id === 'string'
+        ? decision.strategy_id
+        : typeof selected?.strategy_id === 'string' ? selected.strategy_id : '';
+    const applicable = objective && strategyId
+      ? preferences.find((preference) => preference.objetivo === objective && preference.strategy_id === strategyId)
+      : undefined;
+    setText(documentRef, 'decision-preference-objective', objective ? objectiveLabel(objective) : '—');
+    setText(documentRef, 'decision-preference-strategy', strategyId ? actionLabel(strategyId) : '—');
+    setText(documentRef, 'decision-preference-value', applicable ? signedValue(applicable.valor) : '—');
+    setHidden(documentRef, 'decision-preference-region', !objective || !strategyId);
+  }
+
+  /** @param {Document} documentRef @param {JsonRecord | null} snapshot @param {JsonRecord | null} decision */
+  function renderCycleMetrics(documentRef, snapshot, decision) {
+    const metric = latestCycleMetric(snapshot);
+    const hasMetric = Boolean(metric);
+    setHidden(documentRef, 'cycle-metrics-region', !hasMetric);
+    if (!metric) {
+      for (const id of [
+        'cycle_metric_number', 'cycle_metric_temperature', 'cycle_metric_comfort', 'cycle_metric_cost',
+        'cycle_metric_economy', 'cycle_metric_preference', 'cycle_metric_strategy', 'cycle_metric_security',
+        'cycle_metric_blocks', 'cycle_metric_incidents', 'cycle_metric_feedback',
+      ]) setText(documentRef, id, '—');
+      return;
+    }
+    const canonical = canonicalDecision(snapshot);
+    const strategyId = typeof metric.strategy_id === 'string' ? metric.strategy_id
+      : typeof canonical?.strategy_id === 'string' ? canonical.strategy_id
+        : typeof decision?.strategy_id === 'string' ? decision.strategy_id : '—';
+    const blocks = stringList(metric.bloqueios);
+    const incidents = stringList(metric.incidentes);
+    setText(documentRef, 'cycle_metric_number', countText(metric.numero_ciclo));
+    setText(documentRef, 'cycle_metric_temperature', metricWithUnit(metric.temperatura_projetada, '°C', 1));
+    setText(documentRef, 'cycle_metric_comfort', formatMetric(metric.conforto));
+    setText(documentRef, 'cycle_metric_cost', formatMetric(metric.custo_energetico));
+    setText(documentRef, 'cycle_metric_economy', formatMetric(metric.economia));
+    setText(documentRef, 'cycle_metric_preference', signedMetric(metric.ajuste_preferencia));
+    setText(documentRef, 'cycle_metric_strategy', actionLabel(strategyId));
+    setText(documentRef, 'cycle_metric_security', securityLabel(metric.seguranca));
+    setText(documentRef, 'cycle_metric_blocks', blocks.length ? blocks.join(' · ') : 'Nenhum bloqueio registrado.');
+    setText(documentRef, 'cycle_metric_incidents', incidents.length ? incidents.join(' · ') : 'Nenhum incidente registrado.');
+    setText(documentRef, 'cycle_metric_feedback', typeof metric.feedback === 'string' ? metric.feedback : '—');
+  }
+
+  /** @param {Document} documentRef @param {JsonRecord | null} snapshot */
+  function renderRunSummary(documentRef, snapshot) {
+    const computation = snapshotComputation(snapshot);
+    const summary = asRecord(snapshot?.run_summary) ?? asRecord(computation?.resumo);
+    setHidden(documentRef, 'run-summary-region', !summary);
+    const values = [
+      ['run_summary_cycles', summary ? countText(summary.ciclos) : '—'],
+      ['run_summary_energy_total', summary ? formatMetric(summary.custo_energetico_total) : '—'],
+      ['run_summary_energy_average', summary ? formatMetric(summary.custo_energetico_medio) : '—'],
+      ['run_summary_comfort_average', summary ? formatMetric(summary.conforto_medio) : '—'],
+      ['run_summary_safe_cycles', summary ? countText(summary.ciclos_seguros) : '—'],
+      ['run_summary_preventions', summary ? countText(summary.prevencoes) : '—'],
+      ['run_summary_incidents', summary ? countText(summary.incidentes) : '—'],
+      ['run_summary_acceptances', summary ? countText(summary.aceitacoes) : '—'],
+      ['run_summary_corrections', summary ? countText(summary.correcoes) : '—'],
+      ['run_summary_satisfaction', summary ? formatMetric(summary.satisfacao_observada) : '—'],
+    ];
+    for (const [id, value] of values) setText(documentRef, id, value);
+  }
+
+  /** @param {JsonRecord | null} snapshot @returns {JsonRecord | null} */
+  function latestEpisode(snapshot) {
+    const computation = snapshotComputation(snapshot);
+    const openEpisode = asRecord(computation?.episodio_aberto);
+    if (openEpisode) return openEpisode;
+    const episodes = recordList(snapshot?.episodes);
+    return episodes.length ? episodes[episodes.length - 1] : null;
+  }
+
+  /** @param {Document} documentRef @param {JsonRecord | null} snapshot */
+  function renderEpisode(documentRef, snapshot) {
+    const episode = latestEpisode(snapshot);
+    setHidden(documentRef, 'episode-region', !episode);
+    setText(documentRef, 'episode-status', episode?.status === 'aberto' ? 'Aberto'
+      : episode?.status === 'fechado' ? 'Fechado'
+        : episode?.status === 'cancelado' ? 'Cancelado' : '—');
+    setText(documentRef, 'episode-objective', episode?.objetivo ? objectiveLabel(episode.objetivo) : '—');
+    setText(documentRef, 'episode-strategy', typeof episode?.estrategia_sugerida === 'string' ? episode.estrategia_sugerida : '—');
+    setText(documentRef, 'episode-corrected-strategy', typeof episode?.estrategia_corrigida === 'string' ? episode.estrategia_corrigida : 'Nenhuma correção');
+    const commands = recordList(episode?.comandos).map((command) => stepText(command));
+    setText(documentRef, 'episode-commands', commands.length ? commands.join(' · ') : 'Nenhum comando registrado.');
+  }
+
+  /** @param {JsonRecord | null} snapshot @returns {JsonRecord[]} */
+  function traceEvents(snapshot) {
+    return snapshot ? recordList(snapshot.trace) : [];
+  }
+
+  /** @param {unknown} value @returns {string} */
+  function traceEventLabel(value) {
+    const labels = {
+      cycle: 'Ciclo',
+      environment: 'Ambiente',
+      manual_command: 'Comando manual',
+      feedback: 'Feedback',
+      episode: 'Episódio',
+      reset: 'Reinício',
+      run: 'Execução',
+    };
+    return typeof value === 'string' && hasOwn(labels, value)
+      ? labels[/** @type {keyof typeof labels} */ (value)]
+      : typeof value === 'string' ? value : 'Evento';
+  }
+
+  /** @param {Document} documentRef @param {JsonRecord | null} snapshot @param {number} [pageIndex] */
+  function renderTraceHistory(documentRef, snapshot, pageIndex = 0) {
+    const events = traceEvents(snapshot);
+    const pageSize = 10;
+    const pageCount = Math.max(1, Math.ceil(events.length / pageSize));
+    const page = Math.min(Math.max(0, pageIndex), pageCount - 1);
+    const end = Math.max(0, events.length - page * pageSize);
+    const start = Math.max(0, end - pageSize);
+    const visible = events.slice(start, end);
+    const watermark = snapshot && typeof snapshot.pruned_before === 'number'
+      ? countText(snapshot.pruned_before)
+      : '—';
+    const rows = visible.map((event) => {
+      const order = countText(event.ordem);
+      const decisionId = typeof event.decisao_id === 'string' ? event.decisao_id : '—';
+      return `<li><span class="trace-order">${escapeHTML(order)}</span><span>${escapeHTML(traceEventLabel(event.tipo))}</span><span>${escapeHTML(decisionId)}</span></li>`;
+    }).join('');
+    setHidden(documentRef, 'trace-region', !snapshot);
+    setHTML(documentRef, 'trace-list', rows || '<li class="table-empty">Ainda não há eventos retidos.</li>');
+    setText(documentRef, 'trace-cursor', visible.length ? countText(visible[0].ordem) : watermark);
+    setText(documentRef, 'trace-watermark', watermark);
+    setText(documentRef, 'trace-page-status', events.length
+      ? `Página ${page + 1} de ${pageCount} · ${start + 1}–${end} de ${events.length} eventos retidos`
+      : 'Nenhum evento retido');
+    const older = getElement(documentRef, 'trace-older');
+    const newer = getElement(documentRef, 'trace-newer');
+    if (older) older.disabled = page >= pageCount - 1;
+    if (newer) newer.disabled = page === 0;
+  }
+
+  /** @param {Document} documentRef @param {JsonRecord | null} state @param {JsonRecord | null} decision @param {JsonRecord[]} stages @param {UIState} uiState @param {unknown} error @param {JsonRecord | null} response @param {LearningResult | null} learningResult @param {JsonRecord | null} snapshot @param {number} [historyPage] */
+  function renderAll(documentRef, state, decision, stages, uiState, error, response, learningResult, snapshot, historyPage = 0) {
     const preview = decision?.status === 'prevista';
     const confirmed = decision && (!decision.status || decision.status === 'confirmada' || decision.status === 'confirmed');
     const previous = cycleResults.get(documentRef);
@@ -825,6 +1205,11 @@
     renderAlternatives(documentRef, displayedDecision);
     renderPlan(documentRef, displayedDecision, result?.stages ?? []);
     renderMetrics(documentRef, displayedDecision);
+    renderApplicablePreference(documentRef, snapshot, displayedDecision);
+    renderCycleMetrics(documentRef, snapshot, displayedDecision);
+    renderRunSummary(documentRef, snapshot);
+    renderEpisode(documentRef, snapshot);
+    renderTraceHistory(documentRef, snapshot, historyPage);
     renderLearningResult(documentRef, learningResult);
     renderFeedbackControls(documentRef, decision, learningResult);
     renderStatus(documentRef, state, uiState, error, response);
@@ -879,14 +1264,22 @@
     let currentDecision = null;
     /** @type {JsonRecord | null} */
     let lastResponse = null;
+    /** @type {JsonRecord | null} */
+    let confirmedSnapshot = null;
+    /** @type {{ identityId: string, generation: number } | null} */
+    let confirmedIdentity = null;
+    /** @type {number | null} */
+    let confirmedRevision = null;
+    let historyPage = 0;
+    /** @type {string | null} */
+    let historyRunId = null;
     /** @type {LearningResult | null} */
     let lastLearningResult = null;
     /** @type {JsonRecord[]} */
     let confirmedStages = [];
     /** @type {unknown} */
     let currentError = null;
-    /** @type {unknown} */
-    let environmentTimer = null;
+    /** @type {UIElement | null} */
     const cycleModeControl = getElement(documentRef, 'cycle_mode');
 
     function clearLearningResult() {
@@ -894,11 +1287,6 @@
       lastLearningResult = null;
       renderLearningResult(documentRef, null);
     }
-
-    const scheduleTimeout = options.setTimeout
-      ?? (typeof root.setTimeout === 'function' ? root.setTimeout.bind(root) : null);
-    const clearScheduledTimeout = options.clearTimeout
-      ?? (typeof root.clearTimeout === 'function' ? root.clearTimeout.bind(root) : null);
 
     const environmentCallback = callbackFor(options, ['onEnvironmentChange', 'onEnvironmentIntent', 'onEnvironment']);
     const presetCallback = callbackFor(options, ['onPresetIntent', 'onPreset']);
@@ -924,7 +1312,7 @@
       if (disposed) return;
       currentError = error;
       setUIState('erro');
-      renderAll(documentRef, confirmedState, currentDecision, confirmedStages, uiState, currentError, lastResponse, lastLearningResult);
+      renderAll(documentRef, confirmedState, currentDecision, confirmedStages, uiState, currentError, lastResponse, lastLearningResult, confirmedSnapshot, historyPage);
     }
 
     /** @param {string} type @param {unknown} payload @param {IntentCallback | undefined} callback */
@@ -958,20 +1346,8 @@
       if (isRange && event.type !== 'input' && event.type !== 'change') return;
       if (!isRange && event.type !== 'change') return;
       if (isRange && event.type === 'input') {
-        if (environmentTimer !== null) clearScheduledTimeout?.(environmentTimer);
-        if (!scheduleTimeout) {
-          commitEnvironmentChange(input);
-          return;
-        }
-        environmentTimer = scheduleTimeout(() => {
-          environmentTimer = null;
-          commitEnvironmentChange(input);
-        }, 160);
+        previewEnvironmentRange(documentRef, input);
         return;
-      }
-      if (environmentTimer !== null) {
-        clearScheduledTimeout?.(environmentTimer);
-        environmentTimer = null;
       }
       commitEnvironmentChange(input);
     }
@@ -1009,8 +1385,50 @@
       if (!cognitive || !confirmed) return;
       if (feedback === 'aceitar' && preference === 3) return;
       if (feedback === 'rejeitar' && preference === -3) return;
-      renderAll(documentRef, confirmedState, currentDecision, confirmedStages, uiState, currentError, lastResponse, lastLearningResult);
+      renderAll(documentRef, confirmedState, currentDecision, confirmedStages, uiState, currentError, lastResponse, lastLearningResult, confirmedSnapshot, historyPage);
       emitIntent('feedback', feedback, feedbackCallback);
+    }
+
+    /** @param {Element | null | undefined} dialog */
+    function resetDialogScroll(dialog) {
+      if (!dialog) return;
+      const target = /** @type {HTMLElement} */ (dialog);
+      if (typeof target.scrollTo === 'function') {
+        target.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      } else {
+        target.scrollTop = 0;
+        target.scrollLeft = 0;
+      }
+      const scrollables = target.querySelectorAll?.(
+        '.modal-shell, .modal-body, .cycle-mode-help-body, .peas-help-body, .reasoning-body, .table-frame'
+      ) ?? [];
+      for (const container of scrollables) {
+        const elem = /** @type {HTMLElement} */ (container);
+        if (typeof elem.scrollTo === 'function') {
+          elem.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+        } else {
+          elem.scrollTop = 0;
+          elem.scrollLeft = 0;
+        }
+      }
+    }
+
+    function updateModalScrollLock() {
+      const dialogs = [
+        getElement(documentRef, 'reasoning-modal'),
+        getElement(documentRef, 'peas-help-modal'),
+        getElement(documentRef, 'cycle-mode-help-modal'),
+        getElement(documentRef, 'utility-formula-modal'),
+      ];
+      const isOpen = dialogs.some((dialog) => {
+        if (!dialog) return false;
+        const record = /** @type {Record<string, unknown>} */ (/** @type {unknown} */ (dialog));
+        if (typeof record.open === 'boolean') return record.open;
+        if (typeof dialog.hasAttribute === 'function' && dialog.hasAttribute('open')) return true;
+        return record.__isModalOpen === true;
+      });
+      documentRef.documentElement?.classList?.toggle?.('modal-open', isOpen);
+      documentRef.body?.classList?.toggle?.('modal-open', isOpen);
     }
 
     /** @param {Event} event */
@@ -1021,14 +1439,30 @@
       const cycleModeHelpDialog = getElement(documentRef, 'cycle-mode-help-modal');
       const utilityFormulaDialog = getElement(documentRef, 'utility-formula-modal');
       const closeDialog = (dialog) => {
-        const close = dialog && /** @type {Record<string, unknown>} */ (/** @type {unknown} */ (dialog)).close;
+        const record = dialog && /** @type {Record<string, unknown>} */ (/** @type {unknown} */ (dialog));
+        const close = record && record.close;
         if (typeof close === 'function') close.call(dialog);
         else if (dialog) dialog.hidden = true;
+        if (record) record.__isModalOpen = false;
+        resetDialogScroll(dialog);
+        updateModalScrollLock();
       };
       const showDialog = (dialog) => {
-        const showModal = dialog && /** @type {Record<string, unknown>} */ (/** @type {unknown} */ (dialog)).showModal;
+        const record = dialog && /** @type {Record<string, unknown>} */ (/** @type {unknown} */ (dialog));
+        const showModal = record && record.showModal;
+        resetDialogScroll(dialog);
         if (typeof showModal === 'function') showModal.call(dialog);
         else if (dialog) dialog.hidden = false;
+        if (record) record.__isModalOpen = true;
+        resetDialogScroll(dialog);
+        if (typeof requestAnimationFrame === 'function') {
+          requestAnimationFrame(() => resetDialogScroll(dialog));
+        }
+        const closeBtn = dialog?.querySelector?.('.modal-close');
+        if (closeBtn && typeof /** @type {HTMLElement} */ (closeBtn).focus === 'function') {
+          /** @type {HTMLElement} */ (closeBtn).focus({ preventScroll: true });
+        }
+        updateModalScrollLock();
       };
       if (reasoningDialog && event.target === reasoningDialog) {
         closeDialog(reasoningDialog);
@@ -1048,6 +1482,14 @@
       }
       const button = closestTarget(event, 'button');
       if (!button) return;
+      if (button.dataset.tracePage === 'older' || button.dataset.tracePage === 'newer' || button.dataset.tracePage === 'latest') {
+        const pageCount = Math.max(1, Math.ceil(traceEvents(confirmedSnapshot).length / 10));
+        if (button.dataset.tracePage === 'older') historyPage = Math.min(historyPage + 1, pageCount - 1);
+        else if (button.dataset.tracePage === 'newer') historyPage = Math.max(0, historyPage - 1);
+        else historyPage = 0;
+        render();
+        return;
+      }
       if (button.dataset.dialog === 'raciocinio') {
         showDialog(reasoningDialog);
         return;
@@ -1117,9 +1559,19 @@
         getElement(documentRef, 'utility-formula-modal'),
       ];
       const dialog = dialogs.find((candidate) => candidate && event.target === candidate);
-      const close = dialog && /** @type {Record<string, unknown>} */ (/** @type {unknown} */ (dialog)).close;
+      const record = dialog && /** @type {Record<string, unknown>} */ (/** @type {unknown} */ (dialog));
+      const close = record && record.close;
       if (typeof close === 'function') close.call(dialog);
       else if (dialog) dialog.hidden = true;
+      if (record) record.__isModalOpen = false;
+      resetDialogScroll(dialog);
+      updateModalScrollLock();
+    }
+
+    /** @param {Event} event */
+    function handleDialogClose(event) {
+      resetDialogScroll(/** @type {Element | null | undefined} */ (event.target));
+      updateModalScrollLock();
     }
 
     /** @param {unknown} value @param {UIState | undefined} nextState @returns {boolean} */
@@ -1129,12 +1581,36 @@
         reportError(value);
         return false;
       }
+      const incomingSnapshot = responseSnapshot(value);
+      const incomingIdentity = responseIdentity(value, incomingSnapshot);
+      if (incomingIdentity?.mismatch || confirmedIdentity && incomingIdentity
+        && (incomingIdentity.identityId !== confirmedIdentity.identityId
+          || incomingIdentity.generation !== confirmedIdentity.generation)) {
+        reportError(new Error('A resposta pertence a outra identidade.'));
+        return false;
+      }
+      const incomingRevision = responseRevision(value, incomingSnapshot);
+      if (confirmedRevision !== null && incomingRevision !== null && incomingRevision < confirmedRevision) {
+        reportError(new Error('A resposta está desatualizada e foi ignorada.'));
+        return false;
+      }
       const state = responseState(value);
       if (!state) {
         reportError(new Error('A resposta não contém estado confirmado.'));
         return false;
       }
+      const incomingRunId = typeof incomingSnapshot?.run_id === 'string' ? incomingSnapshot.run_id : null;
+      if (incomingRunId && historyRunId && incomingRunId !== historyRunId) historyPage = 0;
+      else if (incomingSnapshot) {
+        historyPage = Math.min(historyPage, Math.max(0, Math.ceil(traceEvents(incomingSnapshot).length / 10) - 1));
+      }
+      if (incomingRunId) historyRunId = incomingRunId;
       confirmedState = state;
+      confirmedSnapshot = incomingSnapshot;
+      if (incomingIdentity) {
+        confirmedIdentity = { identityId: incomingIdentity.identityId, generation: incomingIdentity.generation };
+      }
+      confirmedRevision = incomingRevision;
       lastResponse = value;
       if (hasOwn(value, 'decisao')) {
         currentDecision = responseDecision(value);
@@ -1152,7 +1628,7 @@
       uiState = validUIState(nextState) ?? (uiState === 'automatico' ? 'automatico' : 'pronto');
       rootElement.dataset.uiState = uiState;
       rootElement.setAttribute('data-ui-state', uiState);
-      renderAll(documentRef, confirmedState, currentDecision, confirmedStages, uiState, currentError, lastResponse, lastLearningResult);
+      renderAll(documentRef, confirmedState, currentDecision, confirmedStages, uiState, currentError, lastResponse, lastLearningResult, confirmedSnapshot, historyPage);
       return true;
     }
 
@@ -1170,12 +1646,6 @@
       if (responseState(snapshot)) {
         const accepted = applyResponse(snapshot, nextState ?? undefined);
         if (!accepted) return false;
-        if (currentDecision) {
-          const reason = typeof currentDecision.motivo === 'string' ? currentDecision.motivo : '';
-          const summary = `${actionLabel(currentDecision.acao)} ${reason}`.trim();
-          setText(documentRef, 'decision-card', summary);
-          setText(documentRef, 'decision-modal', summary);
-        }
         return true;
       }
       if (!nextState) {
@@ -1197,14 +1667,12 @@
 
     function render() {
       if (disposed) return;
-      renderAll(documentRef, confirmedState, currentDecision, confirmedStages, uiState, currentError, lastResponse, lastLearningResult);
+      renderAll(documentRef, confirmedState, currentDecision, confirmedStages, uiState, currentError, lastResponse, lastLearningResult, confirmedSnapshot, historyPage);
     }
 
     function destroy() {
       if (disposed) return;
       disposed = true;
-      if (environmentTimer !== null) clearScheduledTimeout?.(environmentTimer);
-      environmentTimer = null;
       rootElement.removeEventListener('input', handleEnvironmentChange);
       rootElement.removeEventListener('change', handleEnvironmentChange);
       rootElement.removeEventListener('click', handleClick);
@@ -1219,6 +1687,12 @@
       peasHelpDialog?.removeEventListener('cancel', handleDialogCancel);
       cycleModeHelpDialog?.removeEventListener('cancel', handleDialogCancel);
       utilityFormulaDialog?.removeEventListener('cancel', handleDialogCancel);
+      reasoningDialog?.removeEventListener('close', handleDialogClose);
+      peasHelpDialog?.removeEventListener('close', handleDialogClose);
+      cycleModeHelpDialog?.removeEventListener('close', handleDialogClose);
+      utilityFormulaDialog?.removeEventListener('close', handleDialogClose);
+      documentRef.documentElement?.classList?.toggle?.('modal-open', false);
+      documentRef.body?.classList?.toggle?.('modal-open', false);
       mountedRoots.delete(rootElement);
     }
 
@@ -1236,6 +1710,10 @@
     peasHelpDialog?.addEventListener('cancel', handleDialogCancel);
     cycleModeHelpDialog?.addEventListener('cancel', handleDialogCancel);
     utilityFormulaDialog?.addEventListener('cancel', handleDialogCancel);
+    reasoningDialog?.addEventListener('close', handleDialogClose);
+    peasHelpDialog?.addEventListener('close', handleDialogClose);
+    cycleModeHelpDialog?.addEventListener('close', handleDialogClose);
+    utilityFormulaDialog?.addEventListener('close', handleDialogClose);
     renderCycleModeHelp(documentRef, selectedCycleMode(documentRef));
 
     /** @type {SimulatorUIHandle} */
